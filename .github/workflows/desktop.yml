@@ -1,140 +1,123 @@
 name: desktop
-# The official desktop app (CONTRIBUTING.md, Releases): push the tag v<version> (the version every package has), or run
-# it by hand for an existing tag. Each target is built (the Macs signed and notarized), and a draft GitHub release gets
-# the installers and the update feeds. Publishing that release makes it the latest: the website's download links and
-# the apps' update checks go to the latest release's files (openfilm.dev/download/… redirects there).
+# Koubo Studio desktop installers (Windows and macOS). This is not an official OpenFilm release:
+# unsigned unless you later add Koubo signing secrets, and it never uses OpenFilm certificates or
+# the openfilm.dev update feed.
 #
-# The secrets are in the `desktop-release` environment (Settings → Environments; deployments limited to v* tags):
-#   OPENFILM_SIGN_IDENTITY         the Developer ID Application identity, "Name (TEAMID)"
-#   APPLE_TEAM_ID                  its team
-#   MACOS_CERTIFICATE_P12_BASE64   that certificate with its private key, exported as .p12, base64
-#   MACOS_CERTIFICATE_PASSWORD     the .p12's password
-#   APPLE_API_KEY_BASE64           an App Store Connect API key (.p8, base64) for notarization
-#   APPLE_API_KEY_ID, APPLE_API_ISSUER_ID   its key id and issuer id
+# Triggers:
+#   - push to main
+#   - tag v* (must match apps/desktop/package.json version): also publishes a GitHub Release
+#   - workflow_dispatch: build the current ref; optionally publish a GitHub Release
+#
+# Artifacts are always uploaded. Builds are unsigned and not notarized until KOUBO_SIGN_IDENTITY,
+# APPLE_TEAM_ID and the related certificate secrets exist. Missing secrets must not fail the build.
+# macOS: allow the app in System Settings → Privacy & Security (or Control-click → Open).
+# Windows: SmartScreen may warn; choose More info → Run anyway.
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
     inputs:
-      tag:
-        description: The release's tag (v<version>)
-        required: true
-        type: string
+      publish_release:
+        description: Also attach the installers to a GitHub Release (tag builds always do this)
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
-  group: desktop-release
-  cancel-in-progress: false
+  group: desktop-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 jobs:
   plan:
-    if: github.repository == 'openfilm/openfilm'
     runs-on: ubuntu-latest
-    environment: desktop-release
     outputs:
+      ref: ${{ steps.plan.outputs.ref }}
       tag: ${{ steps.plan.outputs.tag }}
       version: ${{ steps.plan.outputs.version }}
-      signing: ${{ steps.plan.outputs.signing }}
+      publish: ${{ steps.plan.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag || github.ref }}
       - id: plan
         env:
-          TAG: ${{ inputs.tag || github.ref_name }}
-          SIGN_IDENTITY: ${{ secrets.OPENFILM_SIGN_IDENTITY }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          PUBLISH_INPUT: ${{ github.event.inputs.publish_release }}
         run: |
-          VERSION="${TAG#v}"
-          PACKAGE="$(node -p "require('./apps/desktop/package.json').version")"
-          if [ "$VERSION" != "$PACKAGE" ]; then
-            echo "::error::$TAG does not match apps/desktop/package.json ($PACKAGE)"
-            exit 1
+          VERSION="$(node -p "require('./apps/desktop/package.json').version")"
+          TAG=""
+          PUBLISH=false
+          if [ "$EVENT" = push ] && [[ "$REF" == refs/tags/v* ]]; then
+            TAG="$REF_NAME"
+            ASKED="${TAG#v}"
+            if [ "$ASKED" != "$VERSION" ]; then
+              echo "::error::$TAG does not match apps/desktop/package.json ($VERSION)"
+              exit 1
+            fi
+            PUBLISH=true
+          elif [ "$EVENT" = workflow_dispatch ] && [ "$PUBLISH_INPUT" = true ]; then
+            PUBLISH=true
           fi
-          # without the signing secrets there is no official build here: a maintainer builds it on a Mac (CONTRIBUTING.md)
-          if [ -z "$SIGN_IDENTITY" ]; then
-            echo "::notice::The desktop-release secrets are not set: the installers for $TAG are built and uploaded by hand"
-            SIGNING=false
-          else
-            SIGNING=true
-          fi
-          { echo "tag=$TAG"; echo "version=$VERSION"; echo "signing=$SIGNING"; } >> "$GITHUB_OUTPUT"
+          {
+            echo "ref=$GITHUB_SHA"
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "publish=$PUBLISH"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building Koubo Studio $VERSION (unsigned). Publish release: $PUBLISH"
 
   build:
     needs: plan
-    if: needs.plan.outputs.signing == 'true'
     name: build (${{ matrix.target }})
-    runs-on: macos-15
-    environment: desktop-release
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
-          - { target: mac-arm64, args: --arch=arm64, out: arm64, sign: true }
-          - { target: mac-x64, args: --arch=x64, out: x64, sign: true }
-          # NSIS, built on macOS as scripts/release.mjs expects; not code-signed yet
-          - { target: win-x64, args: --platform=win --arch=x64, out: win-x64, sign: false }
+          - { target: mac-arm64, os: macos-15, args: --unsigned --arch=arm64, out: arm64 }
+          - { target: mac-x64, os: macos-15, args: --unsigned --arch=x64, out: x64 }
+          # NSIS, built on macOS as apps/desktop/scripts/release.mjs expects; not code-signed
+          - { target: win-x64, os: macos-15, args: --unsigned --platform=win --arch=x64, out: win-x64 }
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.plan.outputs.tag }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-${{ matrix.target }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: electron-${{ matrix.target }}-
       - run: pnpm install --frozen-lockfile
 
-      - name: Signing and notarization credentials, in a keychain of this run
-        if: matrix.sign
-        env:
-          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-        run: |
-          KEYCHAIN="$RUNNER_TEMP/openfilm-signing.keychain-db"
-          KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          # the Developer ID Application certificate and its private key
-          echo "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
-          security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
-          rm -f "$RUNNER_TEMP/certificate.p12"
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
-          # this keychain first, and the default: codesign finds the identity, notarytool the profile
-          # shellcheck disable=SC2046 # the keychains already listed, one word each
-          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
-          security default-keychain -d user -s "$KEYCHAIN"
-          # notarytool's credentials (an App Store Connect API key) as the keychain profile release.mjs names
-          echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
-          xcrun notarytool store-credentials openfilm-notary --key "$RUNNER_TEMP/AuthKey.p8" \
-            --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" --keychain "$KEYCHAIN"
-          rm -f "$RUNNER_TEMP/AuthKey.p8"
-          echo "APPLE_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
-
-      - name: Build (npm run release -- --official ${{ matrix.args }})
+      - name: Build unsigned Koubo Studio (${{ matrix.target }})
         working-directory: apps/desktop
-        env:
-          OPENFILM_SIGN_IDENTITY: ${{ matrix.sign && secrets.OPENFILM_SIGN_IDENTITY || '' }}
-          APPLE_TEAM_ID: ${{ matrix.sign && secrets.APPLE_TEAM_ID || '' }}
-          OPENFILM_NOTARY_PROFILE: openfilm-notary
-          SIGN: ${{ matrix.sign }}
+        run: npm run release -- ${{ matrix.args }}
+
+      - name: Check installers
         run: |
-          # an official Mac build is signed and notarized, or not made
-          if [ "$SIGN" = "true" ] && { [ -z "$OPENFILM_SIGN_IDENTITY" ] || [ -z "$APPLE_TEAM_ID" ]; }; then
-            echo "::error::OPENFILM_SIGN_IDENTITY and APPLE_TEAM_ID are not set in the desktop-release environment"
+          set -euo pipefail
+          out="apps/desktop/.release/${{ matrix.out }}/out"
+          ls -la "$out"
+          shopt -s nullglob
+          files=("$out"/*.dmg "$out"/*.zip "$out"/*.exe)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::No Koubo Studio installer found in $out"
             exit 1
           fi
-          npm run release -- --official ${{ matrix.args }}
-
-      - name: Remove the keychain
-        if: always() && matrix.sign
-        run: security delete-keychain "$RUNNER_TEMP/openfilm-signing.keychain-db" || true
+          printf '%s\n' "${files[@]}"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.target }}
+          name: koubo-studio-${{ matrix.target }}
           if-no-files-found: error
           retention-days: 14
           path: |
@@ -146,42 +129,71 @@ jobs:
 
   github-release:
     needs: [plan, build]
+    if: needs.plan.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.plan.outputs.tag }}
       - uses: actions/download-artifact@v4
         with:
-          pattern: desktop-*
+          pattern: koubo-studio-*
           path: artifacts
-      - name: A draft release with the installers and the feeds
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.plan.outputs.tag }}
           VERSION: ${{ needs.plan.outputs.version }}
+          SHA: ${{ needs.plan.outputs.ref }}
         run: |
+          set -euo pipefail
           mkdir upload
-          for dir in artifacts/desktop-*; do
-            target="${dir#artifacts/desktop-}"
+          for dir in artifacts/koubo-studio-*; do
             for f in "$dir"/*; do
-              case "$f" in
-                # each target has its own feed: latest-mac.yml becomes latest-mac-arm64.yml, latest.yml latest-win-x64.yml
-                */latest-mac.yml) cp "$f" "upload/latest-mac-${target#mac-}.yml" ;;
-                */latest.yml) cp "$f" "upload/latest-${target}.yml" ;;
-                *) cp "$f" upload/ ;;
-              esac
+              [ -f "$f" ] || continue
+              cp "$f" upload/
             done
           done
           ls -l upload
-          # the changelog's entry for this version, if there is one
-          awk -v v="## $VERSION" '$0 == v { on = 1; next } /^## / { on = 0 } on' packages/openfilm/CHANGELOG.md > notes.md 2>/dev/null || true
-          [ -s notes.md ] || echo "OpenFilm $VERSION." > notes.md
-          if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" upload/* --clobber
-          else
-            gh release create "$TAG" upload/* --draft --verify-tag --title "$TAG" --notes-file notes.md
+          if [ -z "$(ls -A upload 2>/dev/null)" ]; then
+            echo "::error::No installers to attach to the GitHub Release"
+            exit 1
           fi
+          cat > notes.md <<'NOTES'
+          ## Koubo Studio ${VERSION}
 
+          这是 **Koubo Studio** 的桌面安装包，不是 OpenFilm 官方发行。
+
+          当前构建**未签名、未公证**（没有 Apple / Windows 代码签名证书时，CI 会打出未签名包，这是预期行为）：
+
+          - **macOS**：首次打开可能提示无法验证开发者。请到「系统设置 → 隐私与安全性」允许打开，或按住 Control 点击图标选择「打开」。
+          - **Windows**：SmartScreen 可能提示未经签名。请选择「更多信息」→「仍要运行」。
+
+          Linux 安装包不是本工作流的必须产物。
+
+          ---
+
+          This is **Koubo Studio**, not an official OpenFilm release. These builds are **unsigned and not notarized**.
+
+          - **macOS**: allow the app in System Settings → Privacy & Security, or Control-click the app and choose Open.
+          - **Windows**: if SmartScreen appears, choose More info → Run anyway.
+          NOTES
+          # fill the version placeholder (the heredoc above is quoted)
+          sed -i "s/\${VERSION}/$VERSION/g" notes.md
+
+          if [ -n "$TAG" ]; then
+            if gh release view "$TAG" > /dev/null 2>&1; then
+              gh release upload "$TAG" upload/* --clobber
+              gh release edit "$TAG" --notes-file notes.md --title "Koubo Studio $VERSION"
+            else
+              gh release create "$TAG" upload/* --verify-tag --title "Koubo Studio $VERSION" --notes-file notes.md
+            fi
+          else
+            # workflow_dispatch without a version tag: rolling prerelease, not marked as latest
+            REL_TAG="unsigned-dev"
+            if gh release view "$REL_TAG" > /dev/null 2>&1; then
+              gh release delete "$REL_TAG" --yes --cleanup-tag
+            fi
+            gh release create "$REL_TAG" upload/* --prerelease --latest=false --target "$SHA" \
+              --title "Koubo Studio $VERSION 开发构建（未签名）" --notes-file notes.md
+          fi

@@ -1,4 +1,5 @@
 name: agents
+# Guarded by github.repository == 'openfilm/openfilm'; does not run in fgbhhnnn/koubo-studio.
 # Every night, the newest release of each agent the desktop chat drives, installed the way most people install it (npm,
 # global), on macOS and Windows: found where the app looks, started, and spoken to over ACP through the app's own code
 # (apps/desktop/scripts/agent-check.mjs). An agent's update that breaks the chat shows here before people meet it.

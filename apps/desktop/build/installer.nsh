@@ -17,21 +17,21 @@
       ${If} $1 != "0"
         ${If} $1 == "10"
           ${If} $LANGUAGE == 2052
-            StrCpy $1 "为保护你的工程和素材，OpenFilm 已停止安装或卸载。请把下方目录里的工程、素材库和其他个人文件移到安装目录之外，并更新「设置 → 通用 → 存储」里的项目位置，再重试。$\r$\n$\r$\n$0"
+            StrCpy $1 "为保护你的工程和素材，Koubo Studio 已停止安装或卸载。请把下方目录里的工程、素材库和其他个人文件移到安装目录之外，并更新「设置 → 通用 → 存储」里的项目位置，再重试。$\r$\n$\r$\n$0"
           ${Else}
-            StrCpy $1 "OpenFilm stopped to protect your projects and media. Move your personal files outside the installation folder below and update the project location in Settings before trying again.$\r$\n$\r$\n$0"
+            StrCpy $1 "Koubo Studio stopped to protect your projects and media. Move your personal files outside the installation folder below and update the project location in Settings before trying again.$\r$\n$\r$\n$0"
           ${EndIf}
         ${Else}
           ${If} $LANGUAGE == 2052
-            StrCpy $1 "OpenFilm 无法确认下方目录可以安全清理，安装或卸载已停止。请确认目录可访问后重试。$\r$\n$\r$\n$0"
+            StrCpy $1 "Koubo Studio 无法确认下方目录可以安全清理，安装或卸载已停止。请确认目录可访问后重试。$\r$\n$\r$\n$0"
           ${Else}
-            StrCpy $1 "OpenFilm could not verify that the folder below was safe to clean up. Check that the folder is accessible before trying again.$\r$\n$\r$\n$0"
+            StrCpy $1 "Koubo Studio could not verify that the folder below was safe to clean up. Check that the folder is accessible before trying again.$\r$\n$\r$\n$0"
           ${EndIf}
         ${EndIf}
         DetailPrint "$1"
         ${If} ${Silent}
           ${If} ${isUpdated}
-            System::Call 'user32::MessageBoxW(p 0, w r1, w "OpenFilm", i 0x11010)'
+            System::Call 'user32::MessageBoxW(p 0, w r1, w "Koubo Studio", i 0x11010)'
           ${EndIf}
         ${Else}
           MessageBox MB_OK|MB_ICONSTOP "$1" /SD IDOK
@@ -77,7 +77,7 @@
   !else
     !insertmacro OpenFilmDefineInstallCheck ""
     # This section runs before electron-builder calls the old, already installed uninstaller.
-    Section "-Protect OpenFilm projects"
+    Section "-Protect Koubo Studio projects"
       SectionIn RO
       Push $INSTDIR
       Call OpenFilmCheckInstallPath

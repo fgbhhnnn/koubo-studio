@@ -2,6 +2,8 @@
 
 口播自动去废话、套动画字幕和插图槽，并在同一个编辑器里精修、导出 MP4。
 
+仓库已公开：<https://github.com/fgbhhnnn/koubo-studio>。
+
 这是一个**完整的剪辑应用**：能打开工程、看片、改时间线与字幕，用右侧对话继续改，再导出成片。它基于 [OpenFilm](https://github.com/openfilm/openfilm) 的 Studio / 桌面端 / 渲染 / 对话（MIT），并把 [adu-motion-video](https://github.com/adunext/adu-motion-video) 的已发布镜头包（MIT）改编成可填充模板。产品名是 **Koubo Studio**，不是 OpenFilm，也不是阿杜导演；不要把本项目当成官方发行。商标边界见上游的 [`TRADEMARK.md`](TRADEMARK.md) 与本仓库 [`UPSTREAM.md`](UPSTREAM.md)。
 
 ## 能做什么
@@ -36,6 +38,22 @@ pnpm install
 ```bash
 pnpm dev:desktop
 ```
+
+## 下载桌面安装包
+
+Windows 和 macOS 安装包由 GitHub Actions 自动打包，工作流是 [`.github/workflows/desktop.yml`](.github/workflows/desktop.yml)：
+
+- 推送到 `main`，或在 Actions 里手动运行 `desktop` 工作流，会打出安装包并上传为 [workflow artifacts](https://github.com/fgbhhnnn/koubo-studio/actions/workflows/desktop.yml)（保留 14 天）。
+- 打上 `v*` 版本标签（须与 `apps/desktop/package.json` 的 version 一致，例如 `v0.4.1`）还会挂到 [GitHub Release](https://github.com/fgbhhnnn/koubo-studio/releases)。
+
+产物名是 **Koubo Studio**（例如 `Koubo-Studio-arm64.dmg`、`Koubo-Studio-x64.dmg`、`Koubo-Studio-Setup-x64.exe`）。Linux 包不是必须产物，当前工作流不打。
+
+当前没有 Apple / Windows 代码签名证书，因此这些是**未签名、未公证**的构建，缺少签名密钥时 CI 仍会成功出包：
+
+- **macOS**：首次打开可能提示无法验证开发者。请到「系统设置 → 隐私与安全性」允许打开，或按住 Control 点击图标选择「打开」。
+- **Windows**：SmartScreen 可能提示未经签名。请选择「更多信息」→「仍要运行」。
+
+更完整的说明（本地自己打包、限制）见 [`docs/desktop-ci.md`](docs/desktop-ci.md)。
 
 只跑 Studio（浏览器里打开本机地址）：
 

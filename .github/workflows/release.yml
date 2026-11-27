@@ -1,4 +1,9 @@
 name: release
+# Upstream npm publish of the `openfilm` package. This workflow is kept but does not run in
+# fgbhhnnn/koubo-studio: the job is guarded by `github.repository == 'openfilm/openfilm'`.
+# Koubo Studio does not publish the upstream package to npm and does not use this as its
+# desktop installer pipeline (see desktop.yml).
+#
 # npm releases of `openfilm` (CONTRIBUTING.md, Releases). On every push to main, with the
 # changesets merged since the last release, changesets/action opens or updates the "Version packages" pull request;
 # merging it publishes the packages whose versions changed. npm trusted publishing: npm takes this workflow's OIDC

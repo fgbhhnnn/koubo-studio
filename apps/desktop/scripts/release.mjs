@@ -1,11 +1,15 @@
 /**
- * Build the app people install: `pnpm --filter @openfilm/desktop release` (`--arch=x64` for Intel Macs, default this
- * Mac's; `--unsigned` for a local try; `--platform=win --arch=x64|arm64` for the Windows installer, built here too;
- * `--official` for the project's own build; `--preview` for "OpenFilm Preview", an app of its own to try a build in).
+ * Build the Koubo Studio app people install: `pnpm --filter @openfilm/desktop release` (`--arch=x64` for Intel Macs,
+ * default this Mac's; `--unsigned` for a local or CI try; `--platform=win --arch=x64|arm64` for the Windows installer,
+ * built here too; `--official` for a build that reads product.official.json; `--preview` for "Koubo Studio Preview",
+ * an app of its own to try a build in).
+ *
+ * This is Koubo Studio, not an official OpenFilm release. Do not sign it with OpenFilm certificates or point the
+ * update feed at openfilm.dev.
  *
  * Which build it is comes from the `openfilm` package's product files: a build of this source uses product.json,
  * empty in the repository (no update feed: the app never looks for updates); `--official` uses product.official.json
- * (the update feed under its `desktop.updates`).
+ * (the update feed under its `desktop.updates`, also empty unless you set a Koubo feed).
  *
  *   1. the window's page (shell/: Studio's editor with the chat beside it) and Studio's editor on its own (the
  *      `openfilm` package's UI) are built (the chat's `@openfilm/shared` is bundled into the page);
@@ -20,14 +24,15 @@
  *      playwright-core takes). People never download either: on a slow or blocked connection the first start used to
  *      fail there;
  *   3. electron-builder makes the .dmg (to download) and the .zip (for updates), signed with the Developer ID
- *      OPENFILM_SIGN_IDENTITY ("Name (TEAMID)") and notarized (APPLE_TEAM_ID, the `openfilm-notary` keychain profile or
- *      OPENFILM_NOTARY_PROFILE), with the update feed written in (none without one). Without OPENFILM_SIGN_IDENTITY
- *      and APPLE_TEAM_ID the build is unsigned, as with --unsigned.
+ *      KOUBO_SIGN_IDENTITY or OPENFILM_SIGN_IDENTITY ("Name (TEAMID)") and notarized (APPLE_TEAM_ID, the
+ *      `koubo-notary` keychain profile or KOUBO_NOTARY_PROFILE / OPENFILM_NOTARY_PROFILE), with the update feed written
+ *      in (none without one). Without those identities the build is unsigned, as with --unsigned. Koubo's GitHub
+ *      Actions workflow ships unsigned installers until signing secrets are added.
  *
  *   4. the .dmg is signed and notarized too, so the download itself opens without a warning.
  *
- * Windows: an NSIS installer (OpenFilm-Setup-<version>-<arch>.exe, per user, no admin) and its feed (latest.yml). It is
- * built on this Mac: the program's icon and version are written into OpenFilm.exe with resedit (rcedit would need
+ * Windows: an NSIS installer (Koubo-Studio-Setup-<arch>.exe, per user, no admin) and its feed (latest.yml). It is
+ * built on this Mac: the program's icon and version are written into "Koubo Studio.exe" with resedit (rcedit would need
  * wine). Not code-signed yet (no Windows certificate): SmartScreen asks once, "More info" → "Run anyway".
  *
  * Output: .release/<arch>/out (git-ignored). Nothing is uploaded: official builds are published by the project's
@@ -51,30 +56,31 @@ const win = process.argv.includes('--platform=win');
 const work = join(desktop, '.release', win ? `win-${arch}` : arch);
 const stage = join(work, 'app');
 const out = join(work, 'out');
-/* the Developer ID ("Name (TEAMID)") and its team, from the environment (the release pipeline's secrets) */
-const IDENTITY = process.env.OPENFILM_SIGN_IDENTITY?.trim() || '';
+const pkg = JSON.parse(readFileSync(join(desktop, 'package.json'), 'utf8'));
+/* the Developer ID ("Name (TEAMID)") and its team, from the environment (optional; CI builds unsigned without them) */
+const IDENTITY = (process.env.KOUBO_SIGN_IDENTITY || process.env.OPENFILM_SIGN_IDENTITY)?.trim() || '';
 const TEAM_ID = process.env.APPLE_TEAM_ID?.trim() || '';
 const unsigned = process.argv.includes('--unsigned') || (!win && (!IDENTITY || !TEAM_ID));
 if (unsigned && !win && !process.argv.includes('--unsigned')) {
-  console.warn('OPENFILM_SIGN_IDENTITY and APPLE_TEAM_ID are not set: building an unsigned app (not notarized). Official builds are signed by the release pipeline.');
+  console.warn('KOUBO_SIGN_IDENTITY and APPLE_TEAM_ID are not set: building an unsigned Koubo Studio app (not notarized).');
 }
 
 /* this build's product: its update feed (see the header) */
 const official = process.argv.includes('--official');
-/* --preview: "OpenFilm Preview", to try a build in apart from an installed OpenFilm: its own name and bundle, data
+/* --preview: "Koubo Studio Preview", to try a build apart from an installed Koubo Studio: its own name and bundle, data
    folder, Studio home, port and projects (src/flavor.mjs `preview`, from the package's `openfilmFlavor`); no updates */
 const preview = process.argv.includes('--preview');
 if (preview && official) throw new Error('--preview is never the official build');
-const NAME = preview ? 'OpenFilm Preview' : 'OpenFilm';
+const PRODUCT = typeof pkg.productName === 'string' && pkg.productName.trim() ? pkg.productName.trim() : 'Koubo Studio';
+const NAME = preview ? `${PRODUCT} Preview` : PRODUCT;
 const productFile = join(protocol, official ? 'product.official.json' : 'product.json');
 const product = JSON.parse(readFileSync(productFile, 'utf8'));
 const updates = typeof product.desktop?.updates === 'string' ? product.desktop.updates.trim().replace(/\/+$/, '') : '';
 /** Where the packaged app looks for updates (the release's files are uploaded there), or null: it never looks. */
 export const FEED = updates ? `${updates}/${win ? 'win' : 'mac'}/${arch}` : null;
-const NOTARY_PROFILE = process.env.OPENFILM_NOTARY_PROFILE || 'openfilm-notary';
+const NOTARY_PROFILE = process.env.KOUBO_NOTARY_PROFILE || process.env.OPENFILM_NOTARY_PROFILE || 'koubo-notary';
 
 const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { stdio: 'inherit', ...opts });
-const pkg = JSON.parse(readFileSync(join(desktop, 'package.json'), 'utf8'));
 
 /* 1. the window's page, and Studio's editor for the package */
 const vite = join(dirname(require.resolve('vite/package.json')), 'bin', 'vite.js');
@@ -92,13 +98,13 @@ const dependencies = { ...pkg.dependencies, openfilm: `file:../${pack(protocol)}
 /* npm takes the versions pnpm's lockfile has (locked-versions.mjs): what the tests ran with, not the latest */
 const lockedTree = JSON.parse(execFileSync('pnpm', ['list', '--prod', '--depth', 'Infinity', '--json'], { cwd: desktop, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }))[0];
 writeFileSync(join(stage, 'package.json'), `${JSON.stringify({
-  name: 'openfilm-desktop',
+  name: 'koubo-studio-desktop',
   productName: NAME,
   ...(preview ? { openfilmFlavor: 'preview' } : {}),
   version: pkg.version,
   description: pkg.description,
-  author: 'OpenFilm',
-  license: 'UNLICENSED',
+  author: 'Koubo Studio',
+  license: 'MIT',
   private: true,
   type: 'module',
   main: 'src/main.mjs',
@@ -143,7 +149,7 @@ await builder.build({
       icon: join(desktop, 'build/icon.ico'),
       /* resedit writes the icon and version (afterPack); rcedit would need wine on this Mac */
       signAndEditExecutable: false,
-      artifactName: `${NAME.replace(' ', '-')}-Setup-\${arch}.\${ext}`,
+      artifactName: `${NAME.replaceAll(' ', '-')}-Setup-\${arch}.\${ext}`,
     },
     nsis: {
       include: join(desktop, 'build/installer.nsh'),
@@ -158,13 +164,13 @@ await builder.build({
       uninstallerIcon: join(desktop, 'build/icon.ico'),
       shortcutName: NAME,
       deleteAppDataOnUninstall: false,
-      artifactName: `${NAME.replace(' ', '-')}-Setup-\${arch}.\${ext}`,
+      artifactName: `${NAME.replaceAll(' ', '-')}-Setup-\${arch}.\${ext}`,
     },
-    appId: preview ? 'dev.openfilm.desktop.preview' : 'dev.openfilm.desktop',
+    appId: preview ? 'com.koubo.studio.preview' : 'com.koubo.studio',
     /* openfilm:// links: a page of openfilm.dev opens the app on what it names (src/deep-links.mjs) */
-    protocols: [{ name: 'OpenFilm', schemes: ['openfilm'] }],
+    protocols: [{ name: 'Koubo Studio', schemes: ['openfilm'] }],
     productName: NAME,
-    copyright: 'Copyright © 2026 OpenFilm',
+    copyright: 'Copyright © 2026 Koubo Studio',
     electronVersion,
     asar: true,
     /* run by Electron as Node from outside the archive: the CLI the agents run, the agents' adapters */
@@ -189,17 +195,17 @@ await builder.build({
       icon: join(desktop, 'build/icon.icns'),
       minimumSystemVersion: '13.0',
       /* the .zip the updater downloads; the .dmg has its own name (dmg.artifactName) */
-      artifactName: `${NAME.replace(' ', '-')}-\${version}-\${arch}-mac.\${ext}`,
+      artifactName: `${NAME.replaceAll(' ', '-')}-\${version}-\${arch}-mac.\${ext}`,
       hardenedRuntime: true,
       gatekeeperAssess: false,
       entitlements: join(desktop, 'build/entitlements.mac.plist'),
       entitlementsInherit: join(desktop, 'build/entitlements.mac.plist'),
       /* what macOS says when Studio's record button first asks for the microphone (the entitlement above lets it) */
-      extendInfo: { NSMicrophoneUsageDescription: 'OpenFilm records sound from the microphone when you press Record.' },
+      extendInfo: { NSMicrophoneUsageDescription: 'Koubo Studio records sound from the microphone when you press Record.' },
       ...(unsigned ? { identity: null } : { identity: IDENTITY, notarize: true }),
     },
     /* the downloads keep one name from version to version: the website links the latest release's by it */
-    dmg: { title: NAME, artifactName: `${NAME.replace(' ', '-')}-\${arch}.\${ext}` },
+    dmg: { title: NAME, artifactName: `${NAME.replaceAll(' ', '-')}-\${arch}.\${ext}` },
   },
 });
 
@@ -208,7 +214,7 @@ if (!unsigned && !win && FEED) {
   run('/usr/bin/codesign', ['--verify', '--deep', '--strict', app]);
   run('/usr/bin/xcrun', ['stapler', 'validate', app]);
   /* 4. the download */
-  const dmg = join(out, `${NAME.replace(' ', '-')}-${arch}.dmg`);
+  const dmg = join(out, `${NAME.replaceAll(' ', '-')}-${arch}.dmg`);
   run('/usr/bin/codesign', ['--sign', `Developer ID Application: ${IDENTITY}`, '--timestamp', dmg]);
   run('/usr/bin/xcrun', ['notarytool', 'submit', dmg, '--keychain-profile', NOTARY_PROFILE, '--wait']);
   run('/usr/bin/xcrun', ['stapler', 'staple', dmg]);
@@ -230,7 +236,7 @@ function adHocSign(context) {
   execFileSync('codesign', ['--force', '--deep', '--sign', '-', join(context.appOutDir, `${NAME}.app`)], { stdio: 'inherit' });
 }
 
-/** OpenFilm.exe's icon and version, as rcedit would write them. */
+/** Koubo Studio.exe's icon and version, as rcedit would write them. */
 async function windowsResources(context) {
   const ResEdit = await import('resedit');
   const PE = await import('pe-library');
@@ -244,8 +250,8 @@ async function windowsResources(context) {
   info.setFileVersion(major, minor, patch, 0, 1033);
   info.setProductVersion(major, minor, patch, 0, 1033);
   info.setStringValues({ lang: 1033, codepage: 1200 }, {
-    ProductName: 'OpenFilm', FileDescription: 'OpenFilm', CompanyName: 'OpenFilm', OriginalFilename: 'OpenFilm.exe',
-    InternalName: 'OpenFilm', LegalCopyright: 'Copyright © 2026 OpenFilm', FileVersion: pkg.version, ProductVersion: pkg.version,
+    ProductName: NAME, FileDescription: NAME, CompanyName: 'Koubo Studio', OriginalFilename: `${NAME}.exe`,
+    InternalName: NAME, LegalCopyright: 'Copyright © 2026 Koubo Studio', FileVersion: pkg.version, ProductVersion: pkg.version,
   });
   info.outputToResourceEntries(res.entries);
   res.outputResource(exe);
