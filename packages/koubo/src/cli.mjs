@@ -8,6 +8,7 @@ import { planCuts, formatPlanSummary } from './plan.mjs';
 import { refinePlanWithLlm } from './llm.mjs';
 import { cutMedia } from './cut.mjs';
 import { buildProject } from './project.mjs';
+import { createCompatImageGenerator, hasImageKey } from './images.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OPENFILM_BIN = join(HERE, '..', '..', 'openfilm', 'bin', 'openfilm.mjs');
@@ -32,9 +33,10 @@ const USAGE = `koubo — 口播自动去废话，套模板生成可剪辑工程�
   koubo render [目录] [a-b]      导出 MP4（走本项目渲染引擎）
   koubo studio                   从源码启动 Studio
 
-环境变量：ELEVENLABS_API_KEY（转写）、可选 KOUBO_SCRIBE_MODEL（默认 scribe_v2）、
-可选 KOUBO_LLM_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY（逻辑整理插槽）。
-不要把密钥写进工程、日志或仓库。
+环境变量：ELEVENLABS_API_KEY（转写）、可选 KOUBO_SCRIBE_MODEL（默认 scribe_v2）。
+逻辑整理：KOUBO_LLM_API_KEY（或 OPENAI_API_KEY）、KOUBO_LLM_BASE_URL、KOUBO_LLM_MODEL（默认 gpt6.2sol）。
+生图：KOUBO_IMAGE_API_KEY（默认同 LLM 密钥）、KOUBO_IMAGE_BASE_URL（默认同 LLM base）、KOUBO_IMAGE_MODEL（默认 GPT Image 2.6 Sunburst）。
+没有这些密钥时仍用规则引擎和占位图。不要把密钥写进工程、日志或仓库。
 `;
 
 function parseArgs(argv) {
@@ -125,13 +127,15 @@ async function cmdPlan(rest, flags, ctx) {
   const transcript = await loadTranscript(abs(input, ctx.cwd));
   const duration = flags.duration != null ? Number(flags.duration) : (transcript.audio_duration_secs || undefined);
   let plan = planCuts(transcript, { duration });
-  plan = await refinePlanWithLlm(plan, { env: ctx.env, transcript: transcript.text });
+  plan = await refinePlanWithLlm(plan, { env: ctx.env, transcript });
   const dest = flags.out ? abs(flags.out, ctx.cwd) : null;
   if (dest) {
     await mkdir(dirname(dest), { recursive: true });
     await writeFile(dest, JSON.stringify(plan, null, 2) + '\n', 'utf8');
   }
   print(ctx.io, formatPlanSummary(plan));
+  if (plan.llm?.used) print(ctx.io, `大模型整理：${plan.llm.reason}${plan.llm.note ? ' — ' + plan.llm.note : ''}`);
+  else if (plan.llm?.reason && plan.llm.reason !== 'no-key') print(ctx.io, `大模型整理未应用：${plan.llm.reason}${plan.llm.status ? ' ' + plan.llm.status : ''}`);
   if (dest) print(ctx.io, `方案已写入 ${dest}`);
   return 0;
 }
@@ -162,8 +166,11 @@ async function cmdProject(rest, flags, ctx) {
     title: flags.title || '口播成片',
     cleanVideo: abs(media, ctx.cwd),
     plan,
+    env: ctx.env,
+    imageGenerator: createCompatImageGenerator(ctx.env),
   });
   print(ctx.io, `工程已生成：${result.film}`);
+  if (hasImageKey(ctx.env)) print(ctx.io, '插图槽已尝试调用生图接口；失败的槽位会保留占位图。');
   print(ctx.io, `打开：pnpm koubo open ${result.outDir}`);
   return 0;
 }
@@ -197,7 +204,7 @@ async function cmdIngest(rest, flags, ctx) {
   let duration = transcript.audio_duration_secs;
   if (!Number.isFinite(duration)) duration = await probeDuration(video);
   let plan = planCuts(transcript, { duration });
-  plan = await refinePlanWithLlm(plan, { env: ctx.env, transcript: transcript.text });
+  plan = await refinePlanWithLlm(plan, { env: ctx.env, transcript });
   const planPath = join(outDir, 'koubo', 'plan.json');
   await writeFile(planPath, JSON.stringify(plan, null, 2) + '\n', 'utf8');
   print(ctx.io, formatPlanSummary(plan));
@@ -212,7 +219,11 @@ async function cmdIngest(rest, flags, ctx) {
     title,
     cleanVideo: cleanPath,
     plan,
+    env: ctx.env,
+    imageGenerator: createCompatImageGenerator(ctx.env),
   });
+  if (plan.llm?.used) print(ctx.io, `大模型整理：${plan.llm.reason}${plan.llm.note ? ' — ' + plan.llm.note : ''}`);
+  if (hasImageKey(ctx.env)) print(ctx.io, '插图槽已尝试调用生图接口；失败的槽位会保留占位图。');
   print(ctx.io, `工程已生成：${result.film}`);
   print(ctx.io, `打开编辑器：pnpm koubo open ${outDir}`);
   print(ctx.io, `抽帧检查：pnpm koubo look ${outDir} 0-3`);

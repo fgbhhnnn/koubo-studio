@@ -10,7 +10,7 @@
 2. 用 ElevenLabs Scribe 语音转文字，拿到**词级时间戳**。
 3. 按规则整理：词与词之间 0.3～0.5 秒的自然停顿合并保留；剪掉「嗯啊」口头禅、重复句、说错重来、过长死寂。输出带时间码的保留 / 删除区间。有大模型密钥时可走逻辑整理插槽；没有则用规则引擎。逻辑显著较乱时**不会硬剪**，会在方案里标出。
 4. 用 ffmpeg 按方案裁出干净口播轨（声画一起切，对口型）。
-5. 套自写的口播模板：动画字幕 + 插图槽。需要配图时先留好槽位和接口；没有生图密钥就用可替换占位图，不挡住主路径。改编的 classic-performance（01-A）单位把原来的 `renderAt(t)` 包成 `window.film.frame(t)`，官方角标默认关闭。口播和 BGM 只走时间线音轨。
+5. 套自写的口播模板：动画字幕 + 插图槽。配置了生图接口时，会按槽位调用 `/v1/images/generations` 把图写进工程资产和时间线；没有密钥或调用失败时用可替换占位图，不挡住主路径。改编的 classic-performance（01-A）单位把原来的 `renderAt(t)` 包成 `window.film.frame(t)`，官方角标默认关闭。口播和 BGM 只走时间线音轨。
 6. 生成可在本项目 Studio / 桌面端打开的工程（`film.html` + 镜头页 + 资产 + 字幕）。
 7. 用本项目的渲染导出 MP4（`koubo render` / `koubo look`），不并行维护阿杜旧的 `render_project.mjs` 作出片器。
 
@@ -105,9 +105,14 @@ pnpm test:koubo
 | --- | --- |
 | `ELEVENLABS_API_KEY` | ElevenLabs 词级转写（必需，主路径） |
 | `KOUBO_SCRIBE_MODEL` | 可选，默认 `scribe_v2`（官方批量转写文档） |
-| `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `KOUBO_LLM_API_KEY` | 可选，逻辑整理插槽；缺省走规则引擎 |
+| `KOUBO_LLM_API_KEY` 或 `OPENAI_API_KEY` | 可选，规则方案之后的逻辑整理。没有密钥时只走规则引擎 |
+| `KOUBO_LLM_BASE_URL` | OpenAI 兼容接口的根路径，例如 `https://sub.lllltt.com/v1`（已含 `/v1`，客户端不会再拼成 `/v1/v1`） |
+| `KOUBO_LLM_MODEL` | 逻辑整理模型，默认 `gpt6.2sol`（网关实际 id 为 `gpt-6.2-sol`） |
+| `KOUBO_IMAGE_API_KEY` | 可选，插图生图。不设时复用 `KOUBO_LLM_API_KEY` |
+| `KOUBO_IMAGE_BASE_URL` | 生图接口根路径，默认与 `KOUBO_LLM_BASE_URL` 相同，请求 `POST {base}/images/generations` |
+| `KOUBO_IMAGE_MODEL` | 生图模型，默认 `GPT Image 2.6 Sunburst`（网关实际 id 为 `gpt-image-2.6-sunburst`）。值里有空格时，在 `.env` 里请加引号 |
 
-参考 `.env.example`。永远不要把密钥提交到 git、写进 README，或打进测试金片。
+也可继续使用 `OPENAI_BASE_URL` 作为 base 的备选。参考 `.env.example`。永远不要把密钥提交到 git、写进 README，或打进测试金片。
 
 ## 仓库结构
 

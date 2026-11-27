@@ -2,7 +2,7 @@ import { mkdir, writeFile, copyFile, readFile, cp } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, basename, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fillIllustrationSlot, pickIllustrationSlots } from './images.mjs';
+import { fillIllustrationSlot, pickIllustrationSlots, createCompatImageGenerator } from './images.mjs';
 import { formatPlanSummary } from './plan.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +21,7 @@ export const CLASSIC_PACK_DIR = join(TEMPLATES_DIR, 'classic-performance');
  *   height?: number,
  *   illustrations?: object[],
  *   imageGenerator?: Function,
+ *   env?: object,
  *   includeClassicUnit?: boolean,
  * }} opts
  */
@@ -51,14 +52,14 @@ export async function buildProject(opts) {
   const slots = opts.illustrations || pickIllustrationSlots(plan.words || []);
   const filled = [];
   for (const slot of slots) {
-    const dest = join(illusDir, `${slot.id}.svg`);
+    const dest = join(illusDir, `${slot.id}.png`);
     const result = await fillIllustrationSlot({
       prompt: slot.prompt,
       outPath: dest,
       index: slot.index,
       width: 960,
       height: 600,
-      generator: opts.imageGenerator,
+      generator: opts.imageGenerator ?? (opts.env ? createCompatImageGenerator(opts.env) : null),
     });
     const clipEnd = Math.min(duration, slot.at + slot.duration);
     const clipDur = Math.max(0.8, clipEnd - slot.at);

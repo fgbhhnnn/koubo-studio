@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, basename } from 'node:path';
+import { dirname, basename, extname } from 'node:path';
+import { generateImageBytes, hasImageKey, extensionForMime, sanitizeErrorBody } from './openai-compat.mjs';
 
 /**
  * Illustration slot interface.
@@ -52,11 +53,14 @@ export async function fillIllustrationSlot(req) {
       if (produced) return { path: produced, placeholder: false, prompt };
     } catch (err) {
       // Fall through to a placeholder; do not block ingest.
-      console.error(`生图槽 ${basename(outPath)} 调用失败，改用占位：${err.message || err}`);
+      console.error(`生图槽 ${basename(outPath)} 调用失败，改用占位：${sanitizeErrorBody(err.message || String(err))}`);
     }
   }
-  await writeFile(outPath, placeholderSvg(req), 'utf8');
-  return { path: outPath, placeholder: true, prompt: prompt || '' };
+  const placeholderPath = /\.(png|jpe?g|webp)$/i.test(outPath)
+    ? outPath.replace(/\.(png|jpe?g|webp)$/i, '.svg')
+    : outPath;
+  await writeFile(placeholderPath, placeholderSvg(req), 'utf8');
+  return { path: placeholderPath, placeholder: true, prompt: prompt || '' };
 }
 
 /**
@@ -115,3 +119,34 @@ function scorePrompt(group) {
   if (text.length < 6) score -= 6;
   return score;
 }
+
+export function visualPrompt(text) {
+  const body = String(text || '').trim().slice(0, 200) || '知识讲解';
+  return `横版知识口播配图，干净现代的平面插画，浅色背景，不要出现任何文字、字幕、水印或logo。主题：${body}`;
+}
+
+/**
+ * Generator used by ingest/project when a image API key is configured.
+ * Writes a PNG/JPEG next to the requested path and returns that file.
+ * Missing keys: returns null so fillIllustrationSlot falls back to a placeholder.
+ */
+export function createCompatImageGenerator(env = process.env, opts = {}) {
+  if (!hasImageKey(env)) return null;
+  return async function generate(req) {
+    const result = await generateImageBytes({
+      prompt: visualPrompt(req.prompt),
+      env,
+      fetchImpl: opts.fetchImpl,
+      size: opts.size || '1536x1024',
+    });
+    const ext = extensionForMime(result.mime);
+    const dest = extname(req.outPath)
+      ? req.outPath.replace(/\.[^.]+$/, ext)
+      : `${req.outPath}${ext}`;
+    await mkdir(dirname(dest), { recursive: true });
+    await writeFile(dest, result.bytes);
+    return dest;
+  };
+}
+
+export { hasImageKey };

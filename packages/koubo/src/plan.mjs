@@ -413,6 +413,33 @@ function dropEmptyEdgeKeeps(keeps, words) {
   return list;
 }
 
+
+/**
+ * Rebuild keeps / clean words after extra source-time deletes are added.
+ * Used by the LLM refinement pass.
+ */
+export function recomputePlanFromDeletes(plan, deleteEvents, sourceWords) {
+  const duration = Number(plan.sourceDuration) || 0;
+  const words = sourceWords || [];
+  const events = mergeRanges(deleteEvents || []);
+  let keeps = keepRangesFromDeletes(events, duration);
+  const keptWords = words.filter((w) => !events.some((d) => w.start >= d.start - 1e-4 && w.end <= d.end + 1e-4));
+  keeps = dropEmptyEdgeKeeps(keeps, keptWords);
+  const cleanWords = mapWordsToClean(keptWords, keeps);
+  const cleanDuration = keeps.reduce((s, k) => s + (k.end - k.start), 0);
+  return {
+    ...plan,
+    deletes: events,
+    deleteEvents: deleteEvents || [],
+    keeps,
+    words: cleanWords,
+    cleanDuration,
+    cleanWordCount: cleanWords.length,
+    sourceWordCount: words.length,
+    cleanTranscript: cleanWords.map((w) => w.text).join(looksMostlyCjk(cleanWords) ? '' : ' '),
+  };
+}
+
 export function formatPlanSummary(plan) {
   const del = plan.deletes || [];
   const by = {};
