@@ -1,0 +1,35 @@
+{
+  "text": "嗯 今天 我们 来 讲 这个 这个 方法。啊 今天我们来讲这个方法。先 停一下。呃 第一步 是 把 废话 剪掉。",
+  "language_code": "cmn",
+  "language_probability": 0.99,
+  "audio_duration_secs": 16.0,
+  "words": [
+    { "text": "嗯", "start": 0.20, "end": 0.38, "type": "word" },
+    { "text": " ", "start": 0.38, "end": 0.40, "type": "spacing" },
+    { "text": "今天", "start": 0.72, "end": 1.00, "type": "word" },
+    { "text": "我们", "start": 1.12, "end": 1.35, "type": "word" },
+    { "text": "来", "start": 1.42, "end": 1.55, "type": "word" },
+    { "text": "讲", "start": 1.62, "end": 1.80, "type": "word" },
+    { "text": "这个", "start": 1.90, "end": 2.15, "type": "word" },
+    { "text": "这个", "start": 2.22, "end": 2.48, "type": "word" },
+    { "text": "方法。", "start": 2.58, "end": 3.05, "type": "word" },
+
+    { "text": "啊", "start": 3.20, "end": 3.35, "type": "word" },
+    { "text": "今天", "start": 3.50, "end": 3.75, "type": "word" },
+    { "text": "我们", "start": 3.85, "end": 4.08, "type": "word" },
+    { "text": "来", "start": 4.15, "end": 4.28, "type": "word" },
+    { "text": "讲", "start": 4.35, "end": 4.52, "type": "word" },
+    { "text": "这个", "start": 4.62, "end": 4.88, "type": "word" },
+    { "text": "方法。", "start": 4.98, "end": 5.45, "type": "word" },
+
+    { "text": "先", "start": 8.20, "end": 8.40, "type": "word" },
+    { "text": "停一下。", "start": 8.50, "end": 9.10, "type": "word" },
+
+    { "text": "呃", "start": 9.30, "end": 9.48, "type": "word" },
+    { "text": "第一步", "start": 9.70, "end": 10.20, "type": "word" },
+    { "text": "是", "start": 10.32, "end": 10.48, "type": "word" },
+    { "text": "把", "start": 10.58, "end": 10.72, "type": "word" },
+    { "text": "废话", "start": 10.82, "end": 11.15, "type": "word" },
+    { "text": "剪掉。", "start": 11.25, "end": 11.80, "type": "word" }
+  ]
+}

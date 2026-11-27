@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" role="img" aria-label="Koubo Studio">
+  <title>Koubo Studio</title>
+  <rect x="2" y="8" width="48" height="48" rx="12" fill="#F4F1EA"/>
+  <path d="M14 28h10l8-10 8 10h10v8H40l-8 10-8-10H14z" fill="#E8580C"/>
+  <text x="64" y="42" font-family="ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="700" fill="#F4F1EA">Koubo Studio</text>
+</svg>

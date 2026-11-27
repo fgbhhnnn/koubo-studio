@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds and their caches
+dist/
+.release/
+*.tsbuildinfo
+
+# from-source runs
+.dev/
+
+# what a film's tools keep beside it
+.film/
+.openfilm/
+.koubo/
+
+# local settings and secrets — never commit keys
+.env
+.env.*
+!.env.example
+
+# OS and editors
+.DS_Store
+*.log
+
+# pipeline / user media (do not commit source talking videos or exports)
+/output/
+/exports/
+/input/
+/projects/
+packages/koubo/.tmp/
+packages/koubo/test/.tmp/
+
+# never
+/home/box/.config

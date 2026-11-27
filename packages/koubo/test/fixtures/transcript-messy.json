@@ -1,0 +1,19 @@
+{
+  "text": "很多重复",
+  "audio_duration_secs": 20,
+  "words": [
+    { "text": "这是第一句。", "start": 0.2, "end": 1.0, "type": "word" },
+    { "text": "这是第一句。", "start": 1.2, "end": 2.0, "type": "word" },
+    { "text": "这是第二句。", "start": 2.3, "end": 3.1, "type": "word" },
+    { "text": "这是第二句。", "start": 3.3, "end": 4.1, "type": "word" },
+    { "text": "这是第三句。", "start": 4.4, "end": 5.2, "type": "word" },
+    { "text": "这是第三句。", "start": 5.4, "end": 6.2, "type": "word" },
+    { "text": "这是第四句。", "start": 6.5, "end": 7.3, "type": "word" },
+    { "text": "这是第四句。", "start": 7.5, "end": 8.3, "type": "word" },
+    { "text": "这是第五句。", "start": 8.6, "end": 9.4, "type": "word" },
+    { "text": "这是第五句。", "start": 9.6, "end": 10.4, "type": "word" },
+    { "text": "这是第六句。", "start": 10.7, "end": 11.5, "type": "word" },
+    { "text": "这是第六句。", "start": 11.7, "end": 12.5, "type": "word" },
+    { "text": "最后一句。", "start": 12.8, "end": 13.6, "type": "word" }
+  ]
+}
