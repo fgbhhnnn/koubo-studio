@@ -38,8 +38,8 @@ import { loginShellVariables } from './environment.mjs';
 
 const require = createRequire(import.meta.url);
 /* by their file URLs: import() takes no Windows path (`D:\…`) */
-const lib = () => import(pathToFileURL(require.resolve('openfilm/skills')).href);
-const cli = () => import(pathToFileURL(require.resolve('openfilm/skills-cli')).href);
+const lib = () => import(pathToFileURL(require.resolve('@koubo/editor/skills')).href);
+const cli = () => import(pathToFileURL(require.resolve('@koubo/editor/skills-cli')).href);
 
 /** A skill as the page shows it: by the name the agent is given it by (`as`, agentNames), and its uid. */
 const shown = (s) => ({ name: s.as ?? s.name, uid: s.uid, description: s.description, source: s.source, folder: s.folder, scripts: s.scripts ?? [], ...(s.over ? { over: s.over } : {}), ...(s.shown ? { shown: s.shown } : {}) });

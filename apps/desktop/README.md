@@ -25,9 +25,9 @@ Run from source, the app is its own "Koubo Studio Dev": its own name, data folde
 
 ## Builds
 
-`npm run release` (or `pnpm --filter @openfilm/desktop release`) builds the app into `.release/` (git-ignored).
+`npm run release` (or `pnpm --filter @koubo/desktop release`) builds the app into `.release/` (git-ignored).
 
-Without `KOUBO_SIGN_IDENTITY` / `APPLE_TEAM_ID` it is **unsigned and not notarized**, same as `--unsigned`. A build of this source uses `product.json` (empty update feed: the app never looks for updates). Do not pass `--official` unless you have first set a Koubo update feed in `packages/openfilm/product.official.json`; that file must not point at openfilm.dev.
+Without `KOUBO_SIGN_IDENTITY` / `APPLE_TEAM_ID` it is **unsigned and not notarized**, same as `--unsigned`. A build of this source uses `product.json` (empty update feed: the app never looks for updates). Do not pass `--official` unless you have first set a Koubo update feed in `packages/editor/product.official.json`; that file must not point at openfilm.dev.
 
 Typical local commands:
 

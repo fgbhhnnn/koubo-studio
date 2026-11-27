@@ -4,10 +4,12 @@ import { dirname, join, basename, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fillIllustrationSlot, pickIllustrationSlots, createCompatImageGenerator } from './images.mjs';
 import { formatPlanSummary } from './plan.mjs';
+import { TEMPLATES_ROOT, CLASSIC_PACK_DIR, ILLUSTRATION_HTML } from '@koubo/templates';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const TEMPLATES_DIR = join(HERE, '..', 'templates');
-export const CLASSIC_PACK_DIR = join(TEMPLATES_DIR, 'classic-performance');
+/** @deprecated use TEMPLATES_ROOT from @koubo/templates */
+export const TEMPLATES_DIR = TEMPLATES_ROOT;
+export { CLASSIC_PACK_DIR, ILLUSTRATION_HTML };
 
 /**
  * Build a Koubo Studio / OpenFilm-format project from a cut plan and clean media.

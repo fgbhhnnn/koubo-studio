@@ -24,8 +24,10 @@ test('the installed command prints itself as the agent types it (OPENFILM_RUN, s
     chmodSync(node, 0o755);
     const bin = installOpenfilmCommand(dir, { node });
     const env = (run) => ({ ...process.env, OPENFILM_RUN: run });
-    assert.equal(execFileSync(join(bin, 'openfilm'), { encoding: 'utf8', env: env('openfilm') }), 'openfilm', 'by its name, for an agent whose PATH has it first');
+    assert.equal(execFileSync(join(bin, 'koubo'), { encoding: 'utf8', env: env('koubo') }), 'koubo', 'by its product name, first on PATH');
+    assert.equal(execFileSync(join(bin, 'openfilm'), { encoding: 'utf8', env: env('openfilm') }), 'openfilm', 'compat shim for skills that still say openfilm');
     assert.equal(execFileSync('/bin/sh', ['-c', `${openfilmCommand(bin)} --version`], { encoding: 'utf8', env: env(openfilmCommand(bin)) }), openfilmCommand(bin), 'runs as the agent types it');
+    assert.match(openfilmCommand(bin), /\/koubo'$/, 'OPENFILM_RUN names koubo');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

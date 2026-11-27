@@ -10,8 +10,8 @@
  * (src/preload.cjs). Imported before Studio's modules and the chat's: Studio reads its host as it loads.
  */
 import { flushSync } from 'react-dom';
-import { workspaceChatWidth } from 'openfilm/studio-ui/lib/workspaces.ts';
-import type { CommunityItem, HostAgent, HostAsk, HostProject as Project, HostUpdate, HostUpdateState, HostWorkbench, StudioCommand, StudioHost, StudioRef, StudioSelection } from 'openfilm/studio-ui/lib/host.ts';
+import { workspaceChatWidth } from '@koubo/editor/studio-ui/lib/workspaces.ts';
+import type { CommunityItem, HostAgent, HostAsk, HostProject as Project, HostUpdate, HostUpdateState, HostWorkbench, StudioCommand, StudioHost, StudioRef, StudioSelection } from '@koubo/editor/studio-ui/lib/host.ts';
 
 type Listener<T> = (value: T) => void;
 type Stop = () => void;

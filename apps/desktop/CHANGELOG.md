@@ -1,4 +1,4 @@
-# @openfilm/desktop
+# @koubo/desktop
 
 ## 0.4.1
 
@@ -875,4 +875,4 @@
 
 ## 0.1.3
 
-See the release notes of [openfilm 0.1.3](../../packages/openfilm/CHANGELOG.md): the app and the CLI share their version.
+See the release notes of [openfilm 0.1.3](../../packages/editor/CHANGELOG.md): the app and the CLI share their version.

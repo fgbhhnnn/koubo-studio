@@ -61,7 +61,7 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: playwright-${{ runner.os }}-
       # on Ubuntu its apt-get update is the only one: ffmpeg's install below uses it
-      - run: pnpm --filter openfilm exec playwright-core install --with-deps chromium-headless-shell
+      - run: pnpm --filter @koubo/editor exec playwright-core install --with-deps chromium-headless-shell
         timeout-minutes: 15
       - if: runner.os == 'Linux'
         timeout-minutes: 10

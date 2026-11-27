@@ -11,7 +11,6 @@ import { buildProject } from './project.mjs';
 import { createCompatImageGenerator, hasImageKey } from './images.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OPENFILM_BIN = join(HERE, '..', '..', 'openfilm', 'bin', 'openfilm.mjs');
 const KOUBO_ROOT = resolve(HERE, '..', '..', '..');
 
 function print(io, ...args) {
@@ -21,17 +20,20 @@ function printErr(io, ...args) {
   (io.stderr || process.stderr).write(args.join(' ') + '\n');
 }
 
-const USAGE = `koubo — 口播自动去废话，套模板生成可剪辑工程，再用本项目的 Studio 精修并导出
+const USAGE = `koubo — Koubo Studio：口播自动去废话，套模板生成可剪辑工程，并在同一个编辑器里精修、导出
 
   koubo ingest <video> [--out 目录] [--title 标题] [--transcript json]
   koubo transcribe <video> --out transcript.json
   koubo plan <transcript.json> [--out plan.json] [--duration 秒]
   koubo cut <video> <plan.json> --out clean.mp4
   koubo project --plan plan.json --media clean.mp4 --out 目录 [--title 标题]
-  koubo open [目录]              用本项目 Studio 打开工程
-  koubo look [目录|时间]         抽帧 / 联系表（走本项目渲染引擎）
-  koubo render [目录] [a-b]      导出 MP4（走本项目渲染引擎）
-  koubo studio                   从源码启动 Studio
+  koubo open [目录]              用 Studio 打开工程
+  koubo look [目录|时间]         抽帧 / 联系表
+  koubo render [目录] [a-b]      导出 MP4
+  koubo studio                   从源码启动 Studio（浏览器）
+  koubo desktop                  从源码启动桌面端
+  koubo get | skills | skill | doctor | publish | <插件命令>
+                                 编辑器与插件命令（同一套 CLI，不必再记另一条命令）
 
 环境变量：ELEVENLABS_API_KEY（转写）、可选 KOUBO_SCRIBE_MODEL（默认 scribe_v2）。
 逻辑整理：KOUBO_LLM_API_KEY（或 OPENAI_API_KEY）、KOUBO_LLM_BASE_URL、KOUBO_LLM_MODEL（默认 gpt6.2sol）。
@@ -74,8 +76,16 @@ export async function runCli(argv, io = {}) {
   const cwd = io.cwd || process.cwd();
   const env = io.env || process.env;
   const { args, flags } = parseArgs(argv);
-  if (flags.version) { print(io, 'koubo 0.1.0'); return 0; }
-  if (!args.length || flags.help) { print(io, USAGE); return flags.help || !args.length ? 0 : 2; }
+  if (flags.version && !args.length) { print(io, 'koubo 0.1.0'); return 0; }
+  if (flags.help && !args.length) { print(io, USAGE); return 0; }
+  /* humans get the product usage; an in-app agent with no args gets the editor system prompt */
+  if (!args.length) {
+    if (env.OPENFILM_AGENT || flags.prompt) {
+      return await runEditorArgv([], { cwd, env, io });
+    }
+    print(io, USAGE);
+    return 0;
+  }
 
   const cmd = args[0];
   try {
@@ -84,15 +94,14 @@ export async function runCli(argv, io = {}) {
     if (cmd === 'plan') return await cmdPlan(args.slice(1), flags, { cwd, env, io });
     if (cmd === 'cut') return await cmdCut(args.slice(1), flags, { cwd, env, io });
     if (cmd === 'project') return await cmdProject(args.slice(1), flags, { cwd, env, io });
-    if (cmd === 'open' || cmd === 'look' || cmd === 'render') {
-      return await delegateOpenfilm(cmd, args.slice(1), flags, { cwd, env, io });
+    if (cmd === 'desktop') {
+      return await runDesktop({ cwd, env, io });
     }
-    if (cmd === 'studio' || cmd === 'desktop') {
+    if (cmd === 'studio') {
       return await runStudio({ cwd, env, io });
     }
-    printErr(io, `未知命令：${cmd}`);
-    print(io, USAGE);
-    return 2;
+    /* open/look/render plus get/skills/doctor/publish and plugin verbs all live in the editor module */
+    return await runEditor(cmd, args.slice(1), flags, { cwd, env, io });
   } catch (err) {
     printErr(io, err.message || String(err));
     return 1;
@@ -237,26 +246,85 @@ function safeName(s) {
   return String(s).replace(/[^\p{L}\p{N}_.-]+/gu, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'koubo-project';
 }
 
-async function delegateOpenfilm(cmd, rest, flags, ctx) {
-  if (!existsSync(OPENFILM_BIN)) {
-    throw new Error('找不到本项目的渲染/Studio 命令（packages/openfilm）。请在仓库根目录执行 pnpm install。');
+/** Editor subcommands that live in @koubo/editor/cli (plus plugin verbs). */
+const EDITOR_COMMANDS = new Set(['open', 'look', 'render', 'get', 'skills', 'skill', 'update', 'doctor', 'publish']);
+
+/**
+ * Run an editor command by importing @koubo/editor/cli (same process when possible).
+ * The editor CLI still uses process.exit / process.cwd / process.env in places, so we
+ * align those with this invocation. This is a module call, not a second package's bin.
+ */
+class CliExit extends Error {
+  constructor(code) {
+    super(`cli-exit:${code}`);
+    this.code = code;
+    this.name = 'CliExit';
   }
-  const args = [OPENFILM_BIN, cmd];
-  // `open` / `look` / `render` accept a folder; if the first rest is a path, pass it.
-  for (const r of rest) args.push(r);
+}
+
+async function runEditor(cmd, rest, flags, ctx) {
+  const argv = [cmd, ...rest];
   for (const [k, v] of Object.entries(flags)) {
-    if (k === 'help' || k === 'version') continue;
-    args.push(`--${k}`);
-    if (v !== true) args.push(String(v));
+    argv.push(`--${k}`);
+    if (v !== true) argv.push(String(v));
   }
-  const code = await spawnNode(args, ctx);
-  return code;
+  return runEditorArgv(argv, ctx);
+}
+
+async function runEditorArgv(argv, ctx) {
+  const prevCwd = process.cwd();
+  const prevExit = process.exit;
+  const prevExitCode = process.exitCode;
+  const prevEnv = {
+    OPENFILM_NO_UPDATE_CHECK: process.env.OPENFILM_NO_UPDATE_CHECK,
+    KOUBO_RUN: process.env.KOUBO_RUN,
+    OPENFILM_RUN: process.env.OPENFILM_RUN,
+  };
+  process.exit = (code) => {
+    const n = code ?? 0;
+    process.exitCode = n;
+    throw new CliExit(n);
+  };
+  try {
+    if (ctx.cwd && ctx.cwd !== prevCwd) process.chdir(ctx.cwd);
+    process.env.OPENFILM_NO_UPDATE_CHECK = ctx.env?.OPENFILM_NO_UPDATE_CHECK || '1';
+    if (!process.env.KOUBO_RUN && !process.env.OPENFILM_RUN) process.env.KOUBO_RUN = 'koubo';
+    const { runEditorCli } = await import('@koubo/editor/cli');
+    const code = await runEditorCli(argv, { run: process.env.OPENFILM_RUN || process.env.KOUBO_RUN || 'koubo' });
+    return code ?? process.exitCode ?? 0;
+  } catch (err) {
+    if (err instanceof CliExit) return err.code;
+    throw err;
+  } finally {
+    process.exit = prevExit;
+    process.exitCode = prevExitCode ?? 0;
+    try { process.chdir(prevCwd); } catch { /* ignore */ }
+    for (const [k, v] of Object.entries(prevEnv)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
+async function runDesktop(ctx) {
+  const script = join(KOUBO_ROOT, 'package.json');
+  if (!existsSync(script)) throw new Error('请在 Koubo Studio 仓库根目录运行。');
+  print(ctx.io, '正在从源码启动 Koubo Studio 桌面端…');
+  const pnpm = existsSync(join(KOUBO_ROOT, 'node_modules', '.bin', 'pnpm')) ? join(KOUBO_ROOT, 'node_modules', '.bin', 'pnpm') : 'pnpm';
+  return await new Promise((resolve) => {
+    const child = spawn(pnpm, ['dev:desktop'], { cwd: KOUBO_ROOT, env: ctx.env, stdio: 'inherit' });
+    child.on('close', (code) => resolve(code ?? 0));
+    child.on('error', (err) => {
+      printErr(ctx.io, err.message);
+      resolve(1);
+    });
+  });
 }
 
 async function runStudio(ctx) {
   const script = join(KOUBO_ROOT, 'package.json');
   if (!existsSync(script)) throw new Error('请在 Koubo Studio 仓库根目录运行。');
-  print(ctx.io, '正在从源码启动 Koubo Studio 桌面/Studio…');
+  print(ctx.io, '正在从源码启动 Studio（浏览器）…');
   const pnpm = existsSync(join(KOUBO_ROOT, 'node_modules', '.bin', 'pnpm')) ? join(KOUBO_ROOT, 'node_modules', '.bin', 'pnpm') : 'pnpm';
   return await new Promise((resolve) => {
     const child = spawn(pnpm, ['dev'], { cwd: KOUBO_ROOT, env: ctx.env, stdio: 'inherit' });
@@ -268,19 +336,4 @@ async function runStudio(ctx) {
   });
 }
 
-function spawnNode(args, ctx) {
-  return new Promise((resolve) => {
-    const child = spawn(process.execPath, args, {
-      cwd: ctx.cwd,
-      env: ctx.env,
-      stdio: 'inherit',
-    });
-    child.on('close', (code) => resolve(code ?? 0));
-    child.on('error', (err) => {
-      printErr(ctx.io, err.message);
-      resolve(1);
-    });
-  });
-}
-
-export { USAGE, sanitizeErrorBody, OPENFILM_BIN };
+export { USAGE, sanitizeErrorBody, runEditor, EDITOR_COMMANDS };

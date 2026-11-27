@@ -26,8 +26,8 @@ export const InferenceSession={create:async()=>({inputNames:['image'],outputName
   const listed = (path) => ({ path, bytes: Buffer.byteLength(files[path]), sha256: createHash('sha256').update(files[path]).digest('hex') });
   writeFileSync(join(pkg, 'local-models.json'), JSON.stringify({ models: names.map((id) => ({ id, files: [listed(runtime), listed(`models/${id}/model.onnx`)] })) }));
   writeFileSync(join(folder, 'source.ppm'), Buffer.concat([Buffer.from('P6\n2 2\n255\n'), Buffer.from([255,0,0,0,255,0,0,0,255,255,255,255])]));
-  const source = fileURLToPath(new URL('../../../packages/openfilm/src/local-models.mjs', import.meta.url));
-  const provider = fileURLToPath(new URL('../../../packages/openfilm/studio/server/providers/local.mjs', import.meta.url));
+  const source = fileURLToPath(new URL('../../../packages/editor/src/local-models.mjs', import.meta.url));
+  const provider = fileURLToPath(new URL('../../../packages/editor/studio/server/providers/local.mjs', import.meta.url));
   const worker = join(folder, 'worker.mjs');
   writeFileSync(worker, `import {readFileSync} from 'node:fs';
 import {join} from 'node:path';

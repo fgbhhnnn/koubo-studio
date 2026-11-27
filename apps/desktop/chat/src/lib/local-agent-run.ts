@@ -23,8 +23,8 @@ import {
   AGENT_ASK_ANSWER_MAX,
   type AgentAct,
   type PublicGenerationEvent,
-} from '@openfilm/shared';
-import type { Turn } from '@openfilm/shared';
+} from '@koubo/shared';
+import type { Turn } from '@koubo/shared';
 import type { Balance } from '@/lib/balance';
 import { chatTurns, putChatTurn, type SavedTurn } from '@/lib/chat-store';
 import { withConversationSoFar } from '@/lib/conversation-so-far';

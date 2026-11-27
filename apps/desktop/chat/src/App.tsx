@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { ArrowDown, AtSign, Blocks, ChevronLeft, Coins, CornerDownLeft, Folder, LibraryBig, Loader2, Paperclip, Play, Plus, Shapes, Square, X } from 'lucide-react';
-import { buildPromptDisplay, type Turn } from '@openfilm/shared';
+import { buildPromptDisplay, type Turn } from '@koubo/shared';
 import { useT, useUiLocale } from '@/i18n';
 import { ConversationBar } from '@/components/ConversationSessionBar';
 import { ProjectConversation, TurnUndoContext, primeStoredTranscript } from '@/components/ProjectConversation';
@@ -17,7 +17,7 @@ import { AttachmentPreview, type AttachmentPreviewItem } from '@/components/Atta
 import { ModelPopover } from '@/components/ModelPopover';
 import { Popover } from '@/components/Popover';
 import { AddSkillDialog, type PickedSkill } from '@/components/AddSkill';
-import { SKILLS_CHANGED } from 'openfilm/studio-ui/lib/project-sources.ts';
+import { SKILLS_CHANGED } from '@koubo/editor/studio-ui/lib/project-sources.ts';
 import { CardActions, CardButton, COMPOSER_SURFACE, ComposerCard } from '@/components/ComposerCard';
 import { AgentPermissionCard } from '@/components/AgentPermissionCard';
 import { LocalAgentQuestionCard } from '@/components/TurnQuestionCard';

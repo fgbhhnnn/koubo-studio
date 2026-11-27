@@ -29,10 +29,10 @@ import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
-import { startStudio, vaultSealer } from 'openfilm/studio';
-import { desktopAccount } from 'openfilm/desktop-account';
-import { launch } from 'openfilm/host';
-import { recordProblem } from 'openfilm/problems';
+import { startStudio, vaultSealer } from '@koubo/editor/studio';
+import { desktopAccount } from '@koubo/editor/desktop-account';
+import { launch } from '@koubo/editor/host';
+import { recordProblem } from '@koubo/editor/problems';
 
 process.on('uncaughtExceptionMonitor', (error, origin) => {
   recordProblem({ area: 'studio', step: origin, what: `${error?.name ?? 'Error'}: ${error?.message ?? String(error)}`, code: error?.code });
@@ -151,7 +151,7 @@ try {
   if (!/Executable doesn't exist/.test(e?.message ?? '')) send({ type: 'browser', state: 'failed', message: e?.message ?? String(e) });
   else {
     send({ type: 'browser', state: 'downloading' });
-    const openfilm = dirname(createRequire(import.meta.url).resolve('openfilm/package.json'));
+    const openfilm = dirname(createRequire(import.meta.url).resolve('@koubo/editor/package.json'));
     const cli = join(dirname(createRequire(join(openfilm, 'package.json')).resolve('playwright-core/package.json')), 'cli.js');
     const child = spawn(process.execPath, [cli, 'install', 'chromium-headless-shell'], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, stdio: 'ignore', windowsHide: true });
     child.once('exit', (code) => send(code === 0 ? { type: 'browser', state: 'ready' } : { type: 'browser', state: 'failed', message: `the download stopped (${code})` }));

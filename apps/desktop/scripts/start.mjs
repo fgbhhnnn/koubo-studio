@@ -1,11 +1,11 @@
 /**
- * Run the app from this repository: `pnpm dev:desktop` at the top (or `pnpm --filter @openfilm/desktop start`). Run it
+ * Run the app from this repository: `pnpm dev:desktop` at the top (or `pnpm --filter @koubo/desktop start`). Run it
  * again to restart with the code as it is now.
  *
  * It is the `dev` flavour (src/flavor.mjs): on macOS a renamed copy of Electron.app with its own name, bundle id and
  * data folder, so it never shares a Dock icon, a lock or a Studio with an installed OpenFilm. There is one OpenFilm Dev
  * at a time (a second one only brings the first to the front), so one already running, from this checkout or another,
- * is asked to quit first. Then the window's page (shell/) and Studio's editor (packages/openfilm studio/ui) are built
+ * is asked to quit first. Then the window's page (shell/) and Studio's editor (packages/editor studio/ui) are built
  * (`--no-build` skips both). Electron gets a clean environment: run from inside Claude Code or Codex, this
  * process carries their variables, which the app's agents would inherit (src/environment.mjs). Arguments after the
  * script go to Electron as they are (e.g. --remote-debugging-port=9333).
@@ -63,7 +63,7 @@ if (!process.argv.includes('--no-build')) {
   const vite = join(dirname(require.resolve('vite/package.json')), 'bin', 'vite.js');
   execFileSync(process.execPath, [vite, 'build', '--config', 'shell/vite.config.ts', '--logLevel', 'warn'], { cwd: desktop, stdio: 'inherit' });
   /* the editor Studio serves (studio/ui/dist), built from the source here, with its own vite */
-  const studio = resolve(desktop, '../../packages/openfilm');
+  const studio = resolve(desktop, '../../packages/editor');
   const studioVite = join(dirname(createRequire(join(studio, 'package.json')).resolve('vite/package.json')), 'bin', 'vite.js');
   execFileSync(process.execPath, [studioVite, 'build', '--config', 'studio/ui/vite.config.ts', '--logLevel', 'warn'], { cwd: studio, stdio: 'inherit' });
 }

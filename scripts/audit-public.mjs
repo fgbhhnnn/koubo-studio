@@ -16,7 +16,7 @@
  *             `--terms <file>` (one regular expression per line, as /source/flags or plain source; # comments):
  *             maintainers keep their own list of names that must not appear, outside the repository.
  *   path      a relative path out of the repository (tests may name one, to check it is refused).
- *   deps      a dependency on an `@openfilm/` package, or a `workspace:` range, that is not a package of this
+ *   deps      a dependency on an `@koubo/` package, or a `workspace:` range, that is not a package of this
  *             workspace: everything here builds from this repository and npm alone.
  *   secret    gitleaks (`gitleaks dir`, with .gitleaks.toml: its default rules and this repository's allowlist).
  *
@@ -53,14 +53,14 @@ const HOME = /(?:\/Users\/|\/home\/|[A-Za-z]:\\{1,2}Users\\{1,2})(?!(?:me|you|so
  */
 const ALLOWED = [
   { file: 'apps/desktop/scripts/start.mjs', check: 'path', match: /resolve\(electron, '(\.\.\/){2}\.\.'\)/, why: 'up from the Electron binary to its .app, not from this file' },
-  { file: 'packages/openfilm/src/render.mjs', check: 'private', match: "C:\\\\Users\\\\O'Brien", why: 'a made-up Windows path with a quote in it' },
+  { file: 'packages/editor/src/render.mjs', check: 'private', match: "C:\\\\Users\\\\O'Brien", why: 'a made-up Windows path with a quote in it' },
   { file: /^apps\/desktop\/(src|bench)\/agent-updates\.test\.mjs$/, check: 'private', match: /\/Users\/test\/|\/Users\/Zoë's tools\/|C:\\\\Users\\\\O'?'Neil/, why: "made-up install paths, with quotes and spaces, that an update command must quote" },
   { file: 'apps/desktop/src/main.mjs', check: 'cjk', match: /^\s*('zh-CN'|ja|ko): \{ message: /, why: "the agent's permission question in each language: the main process has no dictionary" },
   { file: 'apps/desktop/build/installer.nsh', check: 'cjk', match: /^\s*StrCpy \$1 "(为保护你的工程和素材|OpenFilm 无法确认下方目录)/, why: 'the Simplified Chinese installer protection messages run before the app starts' },
-  { file: 'packages/openfilm/studio/ui/src/components/library/CloneVoiceDialog.tsx', check: 'cjk', match: /^\s*(zh|ja|ko): '/, why: 'the sentence a person reads aloud to clone their voice, in their language' },
-  { file: 'packages/openfilm/studio/ui/src/components/library/DocSections.tsx', check: 'cjk', match: /^const (HOW|OFF|COST) = \/\^\(/, why: "a guide's section headings as they are written in each language" },
+  { file: 'packages/editor/studio/ui/src/components/library/CloneVoiceDialog.tsx', check: 'cjk', match: /^\s*(zh|ja|ko): '/, why: 'the sentence a person reads aloud to clone their voice, in their language' },
+  { file: 'packages/editor/studio/ui/src/components/library/DocSections.tsx', check: 'cjk', match: /^const (HOW|OFF|COST) = \/\^\(/, why: "a guide's section headings as they are written in each language" },
   { file: /^packages\/openfilm\/library\/covers\/[\w-]+\/look\.html$/, check: 'cjk', match: /class="t1"/, why: "a cover's sample words: the template's own example in its language" },
-  { file: 'packages/openfilm/scripts/doubao-voices.test.mjs', check: 'cjk', match: /./, why: "the voice list's page as the service writes it, which the script reads" },
+  { file: 'packages/editor/scripts/doubao-voices.test.mjs', check: 'cjk', match: /./, why: "the voice list's page as the service writes it, which the script reads" },
 ];
 
 const matches = (pattern, value) => (pattern instanceof RegExp ? pattern.test(value) : pattern === value);
@@ -157,7 +157,7 @@ function scan(files) {
   return locales;
 }
 
-/** Every package.json: its `@openfilm/` and `workspace:` dependencies must be packages of this workspace. */
+/** Every package.json: its `@koubo/` and `workspace:` dependencies must be packages of this workspace. */
 function checkDeps(files) {
   const manifests = files.filter((f) => f === 'package.json' || f.endsWith('/package.json'));
   const pkgs = manifests.map((f) => ({ file: f, json: JSON.parse(readFileSync(join(ROOT, f), 'utf8')) }));
@@ -167,7 +167,7 @@ function checkDeps(files) {
     for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
       for (const [name, range] of Object.entries(json[field] ?? {})) {
         if (local.has(name)) continue;
-        if (!name.startsWith('@openfilm/') && !String(range).startsWith('workspace:')) continue;
+        if (!name.startsWith('@koubo/') && !String(range).startsWith('workspace:')) continue;
         const n = text.findIndex((l) => l.includes(`"${name}"`)) + 1;
         report(file, n, 'deps', `${field}: ${name}@${range} is not a package of this workspace`);
       }

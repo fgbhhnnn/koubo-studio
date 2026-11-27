@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { codexServers, mergeConfig, ownMcpServers, ownSkills, sessionSkills, skillStore } from './agent-skills.mjs';
 
 /* a project's own skills reach no agent until the person allows them there (openfilm/skills allowProjectSkill) */
-const { allowProjectSkill, listSkills } = await import(pathToFileURL(createRequire(import.meta.url).resolve('openfilm/skills')).href);
+const { allowProjectSkill, listSkills } = await import(pathToFileURL(createRequire(import.meta.url).resolve('@koubo/editor/skills')).href);
 
 /* which skills are off is read from Studio's prefs.json: a scratch home, never the person's */
 process.env.OPENFILM_HOME = mkdtempSync(join(tmpdir(), 'of-agent-skills-home-'));

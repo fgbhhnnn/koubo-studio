@@ -3,19 +3,19 @@
  * expand to on send.
  *
  * The marker and a reference's stored shape live in `prompt-reference` in
- * `@openfilm/shared`: the text with markers is stored, so it is a shared contract.
+ * `@koubo/shared`: the text with markers is stored, so it is a shared contract.
  */
 import {
   splitPromptReferenceText,
   type PromptReference as StoredPromptReference,
-} from '@openfilm/shared';
+} from '@koubo/shared';
 
 export {
   promptReferenceToken,
   splitPromptReferenceText,
   stripPromptReferenceTokens,
   type PromptTextSegment,
-} from '@openfilm/shared';
+} from '@koubo/shared';
 
 /**
  * A reference in the editor.
@@ -23,7 +23,7 @@ export {
  * It does not know whether it is an element, a region or a clip; the host translates
  * that. Here it is only an icon, a label, and who handles a click.
  *
- * The shape lives in @openfilm/shared; this narrows `kind` to the kinds the icon table
+ * The shape lives in @koubo/shared; this narrows `kind` to the kinds the icon table
  * knows, since every pill inserted here needs an icon, while stored references can have
  * kinds this UI does not know (see `promptReferenceSchema`).
  */

@@ -8,7 +8,7 @@
  *   · preview — a packaged app built with `release --preview`, "OpenFilm Preview", to try a build in: its own data
  *               folder, Studio home and port, so it never meets an installed OpenFilm (its package says so:
  *               `openfilmFlavor`).
- *   · dev     — `pnpm --filter @openfilm/desktop start`: this repository's code, with its own Studio home. A lane of
+ *   · dev     — `pnpm --filter @koubo/desktop start`: this repository's code, with its own Studio home. A lane of
  *               it (`start --lane sound`, OPENFILM_DEV_LANE) is another such app beside it, "OpenFilm Dev sound", with
  *               its own name, bundle id, data folder, Studio home and port: one for each checkout being tried at once.
  *   · bench   — `node bench/run.mjs`: this repository's code, everything (data, Studio home, projects) in the throwaway

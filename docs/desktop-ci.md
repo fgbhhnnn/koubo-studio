@@ -43,11 +43,11 @@ Linux 安装包不是必须产物，本工作流不打 Linux 包。
 
 ```bash
 pnpm install
-pnpm --filter @openfilm/desktop release -- --unsigned
+pnpm --filter @koubo/desktop release -- --unsigned
 # Intel Mac 安装包：
-pnpm --filter @openfilm/desktop release -- --unsigned --arch=x64
+pnpm --filter @koubo/desktop release -- --unsigned --arch=x64
 # Windows 安装包（也可在 macOS 上打）：
-pnpm --filter @openfilm/desktop release -- --unsigned --platform=win --arch=x64
+pnpm --filter @koubo/desktop release -- --unsigned --platform=win --arch=x64
 ```
 
 产物在 `apps/desktop/.release/<arch>/out/`（该目录已被 git 忽略）。

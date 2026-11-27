@@ -45,7 +45,7 @@ import { nodeBinary } from './node-runtime.mjs';
 import { claudeEnvFile, openfilmCommand } from './openfilm-command.mjs';
 import { outOfBalance } from './pi-config.mjs';
 import { AGENT_DEFINITIONS } from './agent-definitions.mjs';
-import { systemPrompt } from 'openfilm/system-prompt';
+import { systemPrompt } from '@koubo/editor/system-prompt';
 
 const require = createRequire(import.meta.url);
 
@@ -169,19 +169,19 @@ export function keyFileRules(homes, platform = process.platform) {
 }
 
 /**
- * What an agent of someone else's is told, on top of its own instructions: to run `openfilm`, which prints OpenFilm's
- * system prompt (openfilm/src/system-prompt.mjs) and the skills of the plugins on. Nothing of how any work is done, nor
- * how Studio is pointed at: the system prompt and those skills say it. `command`: the app's `openfilm` by its whole
- * path (openfilmCommand), for an agent whose shell may find another `openfilm` first (PATH_KEPT says which do not);
- * null: the one on the PATH, which is the app's.
+ * What an agent of someone else's is told, on top of its own instructions: to run `koubo`, which prints Koubo Studio's
+ * system prompt (packages/editor/src/system-prompt.mjs) and the skills of the plugins on. Nothing of how any work is
+ * done, nor how Studio is pointed at: the system prompt and those skills say it. `command`: the app's `koubo` by its
+ * whole path (openfilmCommand), for an agent whose shell may find another `koubo` first (PATH_KEPT says which do not);
+ * null: the one on the PATH, which is the app's. Skills that still say `openfilm` hit a same-target shim on that PATH.
  */
 export function agentInstructions(command = null) {
   const which = command
-    ? `That path is this app's own \`openfilm\`: run every OpenFilm command by it, also where a skill says \`openfilm\`,
+    ? `That path is this app's own \`koubo\`: run every Koubo Studio command by it, also where a skill says \`openfilm\`,
 as your shell may find another one first.`
-    : 'The `openfilm` on your PATH is this app\'s own.';
-  return `You are working inside OpenFilm, a desktop app for making videos, with Studio open beside this chat on the
-project in your working directory. Before you do anything, run \`${command ?? 'openfilm'}\` with no arguments and follow
+    : 'The `koubo` on your PATH is this app\'s own.';
+  return `You are working inside Koubo Studio, a desktop app for making videos, with Studio open beside this chat on the
+project in your working directory. Before you do anything, run \`${command ?? 'koubo'}\` with no arguments and follow
 what it prints: how to work here, and the skills that say how each kind of work is done. ${which}`;
 }
 

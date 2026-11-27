@@ -2,7 +2,7 @@
   "name": "koubo",
   "version": "0.1.0",
   "private": true,
-  "description": "Koubo Studio talking-head pipeline: transcribe, cut fillers, build a film project, render through the Studio engine.",
+  "description": "Koubo Studio CLI and talking-head pipeline: ingest, transcribe, plan, cut, project, then open/look/render through the editor module.",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -22,5 +22,9 @@
   },
   "engines": {
     "node": ">=22.18"
+  },
+  "dependencies": {
+    "@koubo/editor": "workspace:*",
+    "@koubo/templates": "workspace:*"
   }
 }
