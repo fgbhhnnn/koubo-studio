@@ -88,6 +88,8 @@ const limited = gate(6);
  * Asked as `?film-facts`: a host that plays a lighter copy in a file's place (a proxy) answers this with the file.
  */
 const factsBySrc = new Map();
+/** How long a file's length may take before the host is asked, so a hung decoder cannot hold `film.ready` forever. */
+const FACTS_MS = 8_000;
 function factsOf(src, needPicture = false) {
   const href = url(src).href;
   const key = needPicture ? `video\0${href}` : href;
@@ -96,7 +98,15 @@ function factsOf(src, needPicture = false) {
       /* a video element reads a sound's length too; its file is let go once read */
       const m = document.createElement('video');
       m.preload = 'metadata'; m.muted = true;
-      const done = (facts) => { m.removeAttribute('src'); m.load(); ok(facts); };
+      let finished = false;
+      const done = (facts) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        m.removeAttribute('src'); m.load();
+        ok(facts);
+      };
+      const timer = setTimeout(() => { void hostFacts(href).then((facts) => done(facts ?? { duration: NaN, w: 0, h: 0 })); }, FACTS_MS);
       m.onloadedmetadata = async () => {
         const facts = { duration: m.duration, w: m.videoWidth, h: m.videoHeight };
         /* A playable audio stream can fire loadedmetadata even when the video codec is unsupported. */
@@ -125,7 +135,7 @@ function hostFacts(href) {
   const src = new URL(href);
   if (src.origin !== location.origin) return Promise.resolve(null);
   const of = fromFilm(src);
-  return fetch(new URL(`__film/media-facts?of=${encodeURIComponent(of)}`, location.href))
+  return fetch(new URL(`__film/media-facts?of=${encodeURIComponent(of)}`, location.href), { signal: AbortSignal.timeout(FACTS_MS) })
     /* a file the host reads the picture's size of but no length of: its size is still its size, and it is the size a
        clip placed with a width but no height takes its height from (#501) */
     .then((r) => (r.ok ? r.json() : null)).then((f) => (f && (f.duration > 0 || (f.w > 0 && f.h > 0)) ? { duration: f.duration ?? 0, w: f.w ?? 0, h: f.h ?? 0 } : null)).catch(() => null);
@@ -641,6 +651,39 @@ function steerFootage(win) {
 }
 
 /**
+ * Already ingested talking-head unit pages may still create talk-live videos
+ * with preload=auto. Force none, and keep those PIP talks muted: a film of many
+ * unit iframes must not open a decoder for each as the first frame is drawn.
+ * Sound is the film-level talk / unit-sfx mix, not these elements.
+ */
+function quietPageMedia(win) {
+  const apply = (el) => {
+    if (!el || el.nodeType !== 1) return;
+    if (el.localName !== 'video' && el.localName !== 'audio') return;
+    if (el.preload !== 'none') el.preload = 'none';
+    if (el.classList?.contains('talk-live')) {
+      el.muted = true;
+      el.defaultMuted = true;
+    }
+  };
+  try {
+    win.document.querySelectorAll('video, audio').forEach(apply);
+    if (win.__filmQuietMedia) return;
+    const mo = new win.MutationObserver((records) => {
+      for (const r of records) {
+        for (const n of r.addedNodes) {
+          if (n.nodeType !== 1) continue;
+          apply(n);
+          n.querySelectorAll?.('video, audio').forEach(apply);
+        }
+      }
+    });
+    mo.observe(win.document.documentElement || win.document, { childList: true, subtree: true });
+    Object.defineProperty(win, '__filmQuietMedia', { value: mo });
+  } catch { /* the page was closed */ }
+}
+
+/**
  * A page asks for its video `v` at `want` (media seconds): 'seek' to seek as asked; 'play' when it plays on there by
  * itself (the page is told its seek landed); 'drop' for an ask of a frame given up on (see below), neither sought nor
  * answered. `own`: the page's own currentTime, before this one took it over.
@@ -953,6 +996,7 @@ function wakePage(c) {
     if (c.waking !== mine) return;
     c.seekLoading = false;
     steerFootage(win);
+    quietPageMedia(win);
     c.win = win;
     c.child = win.film;
     c.touched = new Map();

@@ -4,8 +4,10 @@ import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { listTemplates } from 'koubo';
+import { kouboWorkflowWords } from './i18n/koubo-workflow.mjs';
 import {
   ingestRequestOf, publicPreview, publicProgress, publicTemplates, uniqueProjectDir, runDesktopIngest,
+  publicIngestError, openProjectRetry,
 } from './koubo-ipc.mjs';
 
 test('ingest request requires an absolute video path and strips the key from the public request', () => {
@@ -133,4 +135,37 @@ test('runDesktopIngest calls the pipeline then opens the Studio project, without
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+
+test('publicIngestError never leaves the wizard with a raw "fetch failed"', () => {
+  const words = kouboWorkflowWords('zh-CN');
+  const err = new TypeError('fetch failed');
+  err.cause = { code: 'ENOTFOUND' };
+  const said = publicIngestError(err, words);
+  assert.notEqual(said, 'fetch failed');
+  assert.match(said, /网络|ENOTFOUND/);
+  assert.equal(publicIngestError(new TypeError('fetch failed'), kouboWorkflowWords('en')), kouboWorkflowWords('en').networkFailed);
+});
+
+test('openProjectRetry tries again and still resolves after ingest if opening never works', async () => {
+  const asked = [];
+  const project = await openProjectRetry(async (folder) => {
+    asked.push(folder);
+    throw new TypeError('fetch failed');
+  }, '/tmp/proj', undefined, 3);
+  assert.equal(project, null);
+  assert.equal(asked.length, 3);
+  assert.deepEqual(asked, ['/tmp/proj', '/tmp/proj', '/tmp/proj']);
+});
+
+test('openProjectRetry returns the project on a later try', async () => {
+  let n = 0;
+  const project = await openProjectRetry(async () => {
+    n += 1;
+    if (n < 2) throw new TypeError('fetch failed');
+    return { id: 'p2', path: '/tmp/proj' };
+  }, '/tmp/proj', undefined, 3);
+  assert.equal(project?.id, 'p2');
+  assert.equal(n, 2);
 });

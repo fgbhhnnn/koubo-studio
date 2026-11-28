@@ -149,3 +149,8 @@ test('a Windows upgrade refuses to run a legacy uninstaller while a project is i
     await rm(scratch, { recursive: true, force: true });
   }
 });
+
+test('the pack checks the Playwright headless-shell layout before electron-builder', () => {
+  const script = readFileSync(new URL('./release.mjs', import.meta.url), 'utf8');
+  assert.match(script, /assertPlaywrightRuntime\(join\(runtime, 'ms-playwright'\)/);
+});

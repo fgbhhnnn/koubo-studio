@@ -184,9 +184,17 @@ export function filmServer({ editorOrigin, rootOf }) {
     try { plain = decodeURIComponent(path); } catch { /* folderFiles refuses it */ }
     if (!servable(entry.root, plain)) { res.writeHead(404, headers).end('not found'); return; }
     if (url.searchParams.has('film-sound')) {
-      /* waited for while it is made (a few seconds for a long recording): the mixer plays the film without it meanwhile */
-      const file = await soundOf(entry.root, plain.replace(/^\/+/, '')).catch((/** @type {any} */ e) => (e?.status === 404 ? undefined : null));
-      if (file === undefined) { res.writeHead(404, headers).end('not found'); return; }
+      /* waited for while it is made (a few seconds for a long recording): the mixer plays the film without it meanwhile.
+         204 only when the file has no sound: a tool error must not be told as silence (the preview would play mute). */
+      let file;
+      try {
+        file = await soundOf(entry.root, plain.replace(/^\/+/, ''));
+      } catch (/** @type {any} */ e) {
+        if (e?.status === 404) { res.writeHead(404, headers).end('not found'); return; }
+        const status = Number(e?.status) >= 400 && Number(e.status) < 600 ? Number(e.status) : 502;
+        res.writeHead(status, headers).end();
+        return;
+      }
       if (!file) { res.writeHead(204, headers).end(); return; }
       /* its length (s), known from the file's probe: a long one is played as it streams, never decoded whole */
       const length = (await probe(entry.root, plain.replace(/^\/+/, '')).catch(() => null))?.duration;

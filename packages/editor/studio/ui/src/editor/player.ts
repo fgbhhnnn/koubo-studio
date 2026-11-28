@@ -199,17 +199,37 @@ export function limiter(ctx: BaseAudioContext): { in: AudioNode; out: AudioNode 
 }
 
 /**
- * A file's sound from the film's origin: its bytes to decode, 'stream' when it is too long to decode (LONG_SOUND: its
- * bytes are left unread, a media element streams it), null when there is no sound in it (204).
+ * How the mixer should take a ?film-sound response: 204 is no sound; a server
+ * error is not silence — the file itself is then streamed (see soundOf).
  */
-async function soundOf(url: string): Promise<ArrayBuffer | 'stream' | null> {
+export function soundResponseKind(status: number): 'none' | 'body' | 'fallback' {
+  if (status === 204 || status === 404) return 'none';
+  if (status >= 200 && status < 300) return 'body';
+  return 'fallback';
+}
+
+/**
+ * A file's sound from the film's origin: its bytes to decode, 'stream' when it is too long to decode (LONG_SOUND: its
+ * bytes are left unread, a media element streams it), null when there is no sound in it (204). `raw`: play the
+ * original file; the ?film-sound copy could not be made.
+ */
+async function soundOf(url: string): Promise<{ data: ArrayBuffer | 'stream' | null; raw?: boolean }> {
   const r = await fetch(url);
-  if (r.status === 204) return null;
-  if (!r.ok) throw new Error(String(r.status));
+  const kind = soundResponseKind(r.status);
+  if (kind === 'none') return { data: null };
+  if (kind === 'fallback') {
+    void r.body?.cancel().catch(() => {});
+    const raw = new URL(url);
+    raw.searchParams.delete('film-sound');
+    /* the original media: stream it, never decode a whole talking-head video */
+    const head = await fetch(raw, { method: 'HEAD' }).catch(() => null);
+    if (!head || !head.ok) throw new Error(String(r.status));
+    return { data: 'stream', raw: true };
+  }
   const told = r.headers.get(SOUND_LENGTH);
-  if (decodes(told == null ? null : Number(told))) return r.arrayBuffer();
+  if (decodes(told == null ? null : Number(told))) return { data: await r.arrayBuffer() };
   void r.body?.cancel().catch(() => {});
-  return 'stream';
+  return { data: 'stream' };
 }
 
 export class Player {
@@ -220,6 +240,8 @@ export class Player {
    */
   private buffers = new Map<string, { version: number | undefined; buffer: Promise<AudioBuffer | 'stream' | null>; decoded?: AudioBuffer | null }>();
   private origin = '';
+  /** sources whose ?film-sound copy could not be made: play the file itself */
+  private rawSound = new Set<string>();
   private versionOf: (src: string) => number | undefined = () => undefined;
   private sounds: Sound[] = [];
   private playingNodes: AudioScheduledSourceNode[] = [];
@@ -302,7 +324,8 @@ export class Player {
       const entry: { version: number | undefined; buffer: Promise<AudioBuffer | 'stream' | null>; decoded?: AudioBuffer | null } = { version, buffer: (async (): Promise<AudioBuffer | 'stream' | null> => {
         const done = await this.slot(s.src);
         const got = await soundOf(url).finally(done);
-        return got instanceof ArrayBuffer ? ctx.decodeAudioData(got) : got;
+        if (got.raw) this.rawSound.add(s.src);
+        return got.data instanceof ArrayBuffer ? ctx.decodeAudioData(got.data) : got.data;
       })()
         .catch(() => null)
         .then((got) => { entry.decoded = got === 'stream' ? null : got; return got; }) };
@@ -315,7 +338,7 @@ export class Player {
   /** The address of a file's sound, small (`?film-sound`), past the browser's cache when the file was made again. */
   private soundUrl(src: string): string {
     const url = new URL(src, this.origin);
-    url.searchParams.set('film-sound', '1');
+    if (!this.rawSound.has(src)) url.searchParams.set('film-sound', '1');
     const version = this.versionOf(src);
     if (version !== undefined) url.searchParams.set('v', String(version));
     return url.href;

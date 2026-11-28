@@ -16,7 +16,7 @@ import type { Film } from '../api';
 import { useT } from '@/i18n';
 import type { ClipSpan } from '@/lib/film-shape';
 import type { Anchor, Sound } from './player';
-import { heldNext, left, reloaded, shownAfter, shownOf, updateKeys, zoomedPageScale, type Frame } from './preview-frames';
+import { FIRST_READY_MS, firstReadyNext, heldNext, left, reloaded, shownAfter, shownOf, updateKeys, zoomedPageScale, type Frame } from './preview-frames';
 import { usePreviewPrefs } from '@/lib/preview-prefs';
 import { chromiumBased } from '@/lib/browser';
 import { PictureZoom } from '@/lib/viewer-zoom';
@@ -449,6 +449,8 @@ export const Preview = forwardRef<PreviewHandle, Props>(function Preview({ folde
   }, [holding]);
 
   const requestedFirstRevision = useRef(false);
+  const readyTries = useRef(0);
+  const readySince = useRef(0);
   /* the folder (a project) changed: start over */
   useEffect(() => {
     updates.current = 0;
@@ -457,8 +459,42 @@ export const Preview = forwardRef<PreviewHandle, Props>(function Preview({ folde
     up.current.clear();
     requestedFirstRevision.current = false;
     setFrames(managed ? [] : [{ key: 1, ready: false }]);
+    readyTries.current = 0;
+    readySince.current = 0;
     return () => { stillSeek.current?.finish?.(); stillSeek.current = null; };
   }, [folder, managed]);
+
+  /* A talking-head film whose first picture never arrives (a hung decoder, a
+     dead film iframe) must not sit on "drawing the first frame" forever, and
+     must not remount the Studio shell: remount only this iframe, then give up. */
+  useEffect(() => {
+    const pending = frames.find((f) => !f.ready && !f.leaving && !f.error);
+    if (!pending) {
+      if (shownOf(frames)) readyTries.current = 0;
+      return undefined;
+    }
+    if (!readySince.current) readySince.current = performance.now();
+    const started = readySince.current;
+    const timer = setInterval(() => {
+      const still = framesRef.current.find((f) => f.key === pending.key);
+      const shown = shownOf(framesRef.current);
+      const next = firstReadyNext({
+        ready: Boolean(shown || still?.ready || still?.error),
+        tries: readyTries.current,
+        waited: performance.now() - started,
+      });
+      if (next === 'wait') return;
+      readySince.current = 0;
+      if (next === 'reload') {
+        readyTries.current += 1;
+        reload();
+        return;
+      }
+      setFrames((list) => list.map((f) => (f.key === pending.key && !f.ready ? { ...f, error: f.error ?? 'the film did not draw its first frame' } : f)));
+    }, Math.min(1000, FIRST_READY_MS));
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frames, folder]);
 
   useEffect(() => {
     if (!managed) return;

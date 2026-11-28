@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { anchorTime, decodes, EASE_STEP, LONG_SOUND, easedLead, fadeSteps, fileTime, joinAt, JUMP, soundsDue, stretchRate } from './player.ts';
+import { anchorTime, decodes, EASE_STEP, LONG_SOUND, easedLead, fadeSteps, fileTime, joinAt, JUMP, soundResponseKind, soundsDue, stretchRate } from './player.ts';
 import { mediaPlays } from '../../../../src/film-doc.mjs';
 
 test('a sound\'s fades as ramps: where it is now, then each corner after it', () => {
@@ -97,4 +97,14 @@ test('a sound longer than LONG_SOUND is streamed by a media element, not decoded
   assert.equal(decodes(13436), false, 'a 3 h 43 min recording: some 5 GB decoded');
   assert.equal(decodes(null), true, 'not told: decoded, as before');
   assert.equal(decodes(Number.NaN), true);
+});
+
+
+test('a failed film-sound copy is not treated as a silent file', () => {
+  assert.equal(soundResponseKind(204), 'none');
+  assert.equal(soundResponseKind(404), 'none');
+  assert.equal(soundResponseKind(200), 'body');
+  assert.equal(soundResponseKind(501), 'fallback');
+  assert.equal(soundResponseKind(502), 'fallback');
+  assert.equal(soundResponseKind(500), 'fallback');
 });

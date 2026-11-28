@@ -85,3 +85,18 @@ export function zoomedPageScale(k: number, zoom: number, drawn: number, dpr: num
   const fits = Math.min(ZOOMED_SIDE_MAX / Math.max(stage.w, stage.h), Math.sqrt(ZOOMED_AREA_MAX / (stage.w * stage.h)));
   return pageScaleFor(shown, dpr, Math.max(dpr, Math.floor(fits * 4) / 4));
 }
+
+/** How long the first film load may take before only that iframe is remounted (ms). */
+export const FIRST_READY_MS = 20_000;
+/** How many times a stuck first frame remounts the film iframe (never the Studio shell). */
+export const FIRST_READY_TRIES = 2;
+
+/**
+ * Whether a film iframe that has not said it is ready should wait, be loaded
+ * again, or stop retrying: recover the preview without remounting the shell.
+ */
+export function firstReadyNext(h: { ready: boolean; tries: number; waited: number }): 'wait' | 'reload' | 'give-up' {
+  if (h.ready) return 'wait';
+  if (h.waited < FIRST_READY_MS) return 'wait';
+  return h.tries < FIRST_READY_TRIES ? 'reload' : 'give-up';
+}
