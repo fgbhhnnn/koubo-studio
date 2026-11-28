@@ -265,6 +265,10 @@ test('stageAduScripts copies the smoke-check pipeline next to the runtime', () =
   const runtimeDir = scratch();
   stageAduScripts(runtimeDir);
   assert.equal(existsSync(join(runtimeDir, 'adu', 'pipeline.py')), true);
+  assert.equal(existsSync(join(runtimeDir, 'adu', 'face_track.py')), true);
+  assert.equal(existsSync(join(runtimeDir, 'adu', 'sfx.py')), true);
+  assert.equal(existsSync(join(runtimeDir, 'adu', 'data', 'haarcascade_frontalface_default.xml')), true);
+  assert.equal(existsSync(join(runtimeDir, 'adu', 'data', 'face_detection_yunet_2023mar.onnx')), true);
   assert.equal(existsSync(join(runtimeDir, 'adu', 'requirements-runtime.txt')), true);
   const requirements = readFileSync(join(runtimeDir, 'adu', 'requirements-runtime.txt'), 'utf8');
   assert.match(requirements, /opencv-python-headless>=4\.8,<6/);

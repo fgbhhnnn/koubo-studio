@@ -141,10 +141,43 @@ function camCard(parent, w, h, label = '// on air', round = false) {
   const e = mk(parent, `<div class="cam${round ? ' round' : ''}" style="width:${w}px;height:${h}px"><img>${round ? '' : `<div class="lab"><span style="color:#6d9bff">●</span> ${label}</div>`}</div>`, 0, 0, { ax: .5, ay: .5 });
   e._img = e.querySelector('img'); return e;
 }
+function talkTime(t) {
+  return (typeof CONFIG !== 'undefined' && Number.isFinite(CONFIG.filmTime)) ? CONFIG.filmTime : t;
+}
+function kouboFaceAt(clock) {
+  const track = typeof CONFIG !== 'undefined' ? CONFIG.kouboFace : null;
+  const fallback = { cx: .5, cy: .42, h: .28 };
+  if (!track || !Array.isArray(track.cx) || !track.cx.length) return null;
+  const n = track.cx.length;
+  const times = Array.isArray(track.t) && track.t.length === n
+    ? track.t
+    : Array.isArray(track.f) && track.f.length === n
+      ? track.f.map((f) => (Number(f) - 1) / (track.fps || 60))
+      : null;
+  if (!times) return null;
+  const t = Math.max(0, clock);
+  let i0 = 0, i1 = n - 1;
+  if (t <= times[0]) i1 = 0;
+  else if (t >= times[n - 1]) i0 = n - 1;
+  else {
+    while (i1 - i0 > 1) { const md = (i0 + i1) >> 1; if (times[md] <= t) i0 = md; else i1 = md; }
+  }
+  const a = times[i0], b = times[i1], x = b > a ? clamp((t - a) / (b - a)) : 0;
+  const value = { cx: lerp(track.cx[i0], track.cx[i1], x), cy: lerp(track.cy[i0], track.cy[i1], x), h: lerp(track.h[i0], track.h[i1], x) };
+  return Object.values(value).every(Number.isFinite) && value.h > 0 ? value : fallback;
+}
+function talkFrameSize() {
+  const track = typeof CONFIG !== 'undefined' ? CONFIG.kouboFace : null;
+  if (track && track.width > 0 && track.height > 0) return { w: track.width, h: track.height };
+  return { w: 720, h: 1280 };
+}
 function faceAt(t) {
   const fallback = { cx: .5, cy: .42, h: .28 };
+  const clock = talkTime(t);
+  const tracked = kouboFaceAt(clock);
+  if (tracked) return tracked;
   if (typeof FACE === 'undefined' || !HAS_MAP || !TALK_N) return fallback;
-  const m = TALKMAP[clamp(Math.floor(t * CONFIG.fps + 1e-6), 0, TALK_N - 1)];
+  const m = TALKMAP[clamp(Math.floor(clock * CONFIG.fps + 1e-6), 0, TALK_N - 1)];
   const F = m && FACE[TALKF[m[0]]];
   if (!F || !Array.isArray(F.f) || !F.f.length ||
       !['cx', 'cy', 'h'].every(k => Array.isArray(F[k]) && F[k].length === F.f.length)) return fallback;
@@ -155,19 +188,28 @@ function faceAt(t) {
   return Object.values(value).every(Number.isFinite) && value.h > 0 ? value : fallback;
 }
 function camAt(e, t, o) {
-  setFrame(e._img, talkSrc(t)); place(e, o);
-  const round = e.firstChild.classList.contains('round');
+  const clock = talkTime(t);
+  const box = e.querySelector && (e.querySelector('.cam') || e.firstChild) || e.firstChild;
+  const live = box && box.querySelector && box.querySelector('video.talk-live');
+  if (!live) setFrame(e._img, talkSrc(clock));
+  place(e, o);
+  const round = (box || e.firstChild).classList.contains('round');
   const sm = e._sm != null ? e._sm : (e._sm = 0);          // S5 small-card mode is set by caller via e._sm (0..1)
   const k = round ? 1 : sm;
-  if (k > 0) {
-    const f = faceAt(t), W = e.firstChild.offsetWidth, H = e.firstChild.offsetHeight;
-    // image is object-fit:cover of a 720x1280 frame; zoom so the face height ≈ 58% of the box, then centre on the face
-    const cover = Math.max(W / 720, H / 1280), want = (H * .44) / (f.h * 1280 * cover);
+  const target = live || e._img;
+  if (k > 0 && target) {
+    const f = faceAt(clock), W = box.offsetWidth, H = box.offsetHeight;
+    const size = talkFrameSize();
+    // Zoom so the face height fills ~44% of the card, then centre on the face.
+    const cover = Math.max(W / size.w, H / size.h), want = (H * .44) / (Math.max(f.h, .08) * size.h * cover);
     const z = lerp(1, clamp(want, 1, 2.6), k);
-    const iw = 720 * cover * z, ih = 1280 * cover * z;
+    const iw = size.w * cover * z, ih = size.h * cover * z;
     const ox = clamp(W / 2 - f.cx * iw, W - iw, 0), oy = clamp(H * .56 - f.cy * ih, H - ih, 0);
-    e._img.style.cssText = `position:absolute;left:${ox.toFixed(1)}px;top:${oy.toFixed(1)}px;width:${iw.toFixed(1)}px;height:${ih.toFixed(1)}px;max-width:none;object-fit:fill`;
-  } else if (e._img.style.position) e._img.style.cssText = '';
+    target.style.cssText = `position:absolute;left:${ox.toFixed(1)}px;top:${oy.toFixed(1)}px;width:${iw.toFixed(1)}px;height:${ih.toFixed(1)}px;max-width:none;object-fit:fill`;
+    if (live && e._img) e._img.style.opacity = '0';
+  } else if (target && target.style && target.style.position && !live) {
+    target.style.cssText = '';
+  }
 }
 function vtile(parent, w, h, r = 16, extra = '') {
   const e = mk(parent, `<div class="vt" style="width:${w}px;height:${h}px;border-radius:${r}px;${extra}"><img></div>`, 0, 0, { ax: .5, ay: .5 });

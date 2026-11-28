@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
-"""Koubo smoke check for the bundled 阿杜 / adu-motion-video Python runtime.
+"""Koubo entry point for the bundled 阿杜 / adu-motion-video Python runtime.
 
-This is not the full upstream doctor from adu-motion-video (which also checks
-Node, FFmpeg, a browser, and a skill virtualenv). It only verifies that this
-interpreter can import the packages in requirements-runtime.txt.
+Commands:
+    doctor         Smoke-check that runtime wheels import (numpy, pillow, scipy,
+                   opencv-python-headless, fonttools).
+    prepare-talk   Sample the clean talking-head track and write a face track
+                   on a 60fps clock (Haar / wide-fixed fallback).
+    mix-sfx        Synthesize remapped unit action cues onto an output-clock WAV.
+
+This is not the full upstream adu-motion-video doctor (Node, FFmpeg, Chrome,
+skill venv). Official MotionGit .motion packs are never loaded here.
 
 Usage:
     python pipeline.py doctor
+    python pipeline.py prepare-talk --video talking-clean.mp4 --out DIR
+    python pipeline.py mix-sfx --cues cues.json --out unit-sfx.wav
 """
 from __future__ import annotations
 
 import importlib
 import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
 
 MODULES = (
     ("numpy", "numpy"),
@@ -48,10 +59,19 @@ def main(argv: list[str] | None = None) -> int:
     if not args or args[0] in {"-h", "--help", "help"}:
         print(__doc__)
         return 0
-    if args[0] == "doctor":
+    command = args[0]
+    if command == "doctor":
         return doctor()
-    print(f"Unknown command: {args[0]}", file=sys.stderr)
-    print("Commands: doctor", file=sys.stderr)
+    if command == "prepare-talk":
+        sys.path.insert(0, str(HERE))
+        from face_track import main as prepare
+        return prepare(args[1:])
+    if command == "mix-sfx":
+        sys.path.insert(0, str(HERE))
+        from sfx import main as mix
+        return mix(args[1:])
+    print(f"Unknown command: {command}", file=sys.stderr)
+    print("Commands: doctor, prepare-talk, mix-sfx", file=sys.stderr)
     return 2
 
 

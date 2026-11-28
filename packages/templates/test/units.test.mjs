@@ -16,6 +16,13 @@ import {
   sha256Utf8,
   jsContent,
   CLASSIC_PACK_DIR,
+  clipText,
+  twoLines,
+  clauseChunks,
+  renderEvidencePlate,
+  interpolateFace,
+  parseUnitCues,
+  remapClipCues,
 } from '../index.mjs';
 
 const manifest = loadUnitsManifest();
@@ -175,4 +182,75 @@ test('a long film without keywords still cycles all three units', () => {
   assert.ok(ids.has('claim-into-container'));
   assert.ok(ids.has('decompose-and-consolidate'));
   assert.ok(ids.has('evidence-focus'));
+});
+
+
+test('clipText breaks on complete clauses, not mid-phrase', () => {
+  const sentence = '做AI自媒体不到一个月，我竟然变现了四位数。';
+  assert.equal(clipText(sentence, 18), '做AI自媒体不到一个月');
+  assert.equal(clipText(sentence, 6), '做AI自媒体');
+  assert.doesNotMatch(clipText(sentence, 18), /变现了$/);
+  assert.doesNotMatch(clipText(sentence, 12), /不到一个月我/);
+  const [line1, line2] = twoLines(sentence, 6);
+  assert.equal(line1, '做AI自媒体');
+  assert.ok(['不到一个月', '要点'].includes(line2) || line2.length <= 6);
+  assert.doesNotMatch(line2, /一个月我/);
+  const parts = clauseChunks('第一是找到痛点，第二是讲清方法，第三是给出对照。', 3, 7);
+  assert.equal(parts[0], '第一是找到痛点');
+  assert.equal(parts[1], '第二是讲清方法');
+  assert.equal(parts[2], '第三是给出对照');
+});
+
+test('evidence plates are screen-style boards, not a single text card', () => {
+  const svg = renderEvidencePlate({
+    variant: 'detail',
+    title: '本期素材对照',
+    claim: '看一次完整的整理过程',
+    observations: [
+      { before: '散落', after: '聚拢' },
+      { before: '重读', after: '索引' },
+      { before: '遗忘', after: '回顾' },
+    ],
+    conclusion: '从散落到可以回看',
+  });
+  assert.match(svg, /<svg /);
+  assert.match(svg, /细节板/);
+  assert.match(svg, /2\.4×/);
+  assert.match(svg, /本期素材对照/);
+  assert.match(svg, /散落/);
+  assert.match(svg, /聚拢/);
+  assert.match(svg, /#ff5f57/); // window chrome
+});
+
+test('interpolateFace follows the track on the film clock and falls back safely', () => {
+  const track = {
+    fps: 60,
+    width: 1920,
+    height: 1080,
+    t: [0, 1, 2],
+    cx: [0.2, 0.4, 0.6],
+    cy: [0.3, 0.4, 0.5],
+    h: [0.2, 0.2, 0.2],
+  };
+  const mid = interpolateFace(track, 1.5);
+  assert.equal(mid.source, 'track');
+  assert.ok(Math.abs(mid.cx - 0.5) < 1e-9);
+  assert.ok(Math.abs(mid.cy - 0.45) < 1e-9);
+  const missing = interpolateFace(null, 1);
+  assert.equal(missing.source, 'fallback');
+  assert.equal(missing.cx, 0.5);
+});
+
+test('unit SFX cues remap from the source clock onto the film clock', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { join } = await import('node:path');
+  const scene = sceneById(manifest, 'claim-into-container');
+  const source = await readFile(join(CLASSIC_PACK_DIR, 'units', 'claim-into-container.js'), 'utf8');
+  const cues = parseUnitCues(source);
+  assert.ok(cues.some((c) => c.type === 'hit' && c.t === 0.16));
+  const clock = mapUnitClock(scene, unitBounds(scene).native);
+  const remapped = remapClipCues({ at: 10, clock, id: 'unit-01', unitId: scene.id }, cues);
+  const hit = remapped.find((c) => c.type === 'hit' && c.sourceT === 0.16);
+  assert.ok(hit);
+  assert.ok(Math.abs(hit.t - 10.16) < 1e-6);
 });

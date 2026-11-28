@@ -20,6 +20,8 @@ Desktop installers also bundle:
 - **SciPy**: BSD License.
 - **opencv-python-headless** (OpenCV): Apache License 2.0. The GUI and CUDA
   OpenCV packages are not shipped.
+- **haarcascade_frontalface_default.xml** (OpenCV / Intel License Agreement For Open Source Computer Vision Library): shipped under `apps/desktop/runtime/adu/data/` because current OpenCV wheels no longer include the cascade files. The XML retains its original copyright notice.
+- **face_detection_yunet_2023mar.onnx** (YuNet, OpenCV Zoo): Apache License 2.0. Used for face detection on OpenCV 5, which removed `CascadeClassifier`.
 - **fonttools**: MIT License.
 
 Version ranges follow `apps/desktop/runtime/adu/requirements-runtime.txt`,

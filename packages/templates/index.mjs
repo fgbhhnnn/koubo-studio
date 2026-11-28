@@ -19,12 +19,16 @@ export {
   classifyBeat,
   splitSentences,
   joinWords,
-  clipText,
   sceneById,
   UNITS_MANIFEST_PATH,
 } from './assign-units.mjs';
 export { bindAuthoredBlock, jsContent, sha256Utf8, PACK_PLAIN_TEXT_RUNTIME } from './bind-unit.mjs';
 export { renderUnitPage } from './unit-page.mjs';
+export { clipText, twoLines, clauseChunks, splitClauses, softBreaks } from './typography.mjs';
+export { renderEvidencePlate, EVIDENCE_PLATE_KEYS } from './evidence-plate.mjs';
+export { interpolateFace, faceJs } from './face.mjs';
+export { parseUnitCues, remapClipCues, outputTimeAt } from './cues.mjs';
+
 
 
 export function loadCatalog() {

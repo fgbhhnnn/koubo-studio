@@ -10,6 +10,8 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { clipText, twoLines, clauseChunks } from './typography.mjs';
+export { clipText };
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 export const UNITS_MANIFEST_PATH = join(ROOT, 'classic-performance', 'units-manifest.json');
@@ -164,16 +166,6 @@ export function joinWords(words) {
   return s;
 }
 
-export function clipText(text, maxChars) {
-  const chars = codePointArray(String(text ?? '').trim());
-  if (!chars.length) return '';
-  const max = Math.max(1, Number(maxChars) || chars.length);
-  if (chars.length <= max) return chars.join('');
-  let out = chars.slice(0, max);
-  while (out.length > 1 && /[，。、,.!！？?;；：:\s]/.test(out[out.length - 1])) out.pop();
-  return out.join('');
-}
-
 function codePointArray(text) {
   return [...String(text)];
 }
@@ -238,29 +230,6 @@ function sentencesOf(text) {
   return parts.length ? parts : (text ? [String(text)] : []);
 }
 
-function chunks(text, n, maxChars) {
-  const compact = String(text || '').replace(/\s+/g, '');
-  const chars = [...compact];
-  const out = [];
-  let i = 0;
-  while (out.length < n && i < chars.length) {
-    const piece = chars.slice(i, i + maxChars).join('');
-    if (piece) out.push(piece);
-    i += maxChars;
-  }
-  return out;
-}
-
-function twoLines(text, maxChars) {
-  const compact = String(text || '').replace(/[。！？!?；;，,、\s]+/g, '');
-  const chars = [...compact];
-  if (chars.length <= maxChars) {
-    return [chars.join('') || '本期', chars.length ? '要讲的是' : '口播要点'];
-  }
-  const mid = Math.min(maxChars, Math.max(2, Math.ceil(Math.min(chars.length, maxChars * 2) / 2)));
-  return [chars.slice(0, mid).join(''), chars.slice(mid, mid + maxChars).join('') || '要点'];
-}
-
 /**
  * Build slot id → text for one unit from this beat's words.
  * Every mustChange slot is different from the pack placeholder.
@@ -274,7 +243,7 @@ export function fillUnitSlots(scene, words, opts = {}) {
   const mid = sents[Math.min(1, sents.length - 1)] || first;
   const chapter = String(opts.chapter ?? '01').padStart(2, '0');
   const roleLabel = opts.label || ROLE_LABEL[scene.id] || '口播讲解';
-  const parts = chunks(text.replace(/[。！？!?；;，,、]/g, ''), 6, 6);
+  const parts = clauseChunks(text, 6, 6);
 
   const inputs = {};
   if (scene.id === 'claim-into-container') {
@@ -285,7 +254,7 @@ export function fillUnitSlots(scene, words, opts = {}) {
     inputs.container = {
       heading: clipText(mid, 18) || '把方法，讲清楚',
       type: '口播讲解 · 本期内容',
-      name: clipText(first, 20) || '本期方法',
+      name: clipText(first, 12) || line1 || '本期方法',
       contents: parts.slice(0, 3).join('　·　') || '要点　·　方法　·　结论',
       status: '✓ 本片正在讲',
     };

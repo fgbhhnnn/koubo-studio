@@ -3,8 +3,7 @@
 Desktop installers for Windows x64, macOS Apple 芯片, and macOS Intel include a
 portable CPython so people do not have to install Python themselves. This is
 for the 阿杜 / [adu-motion-video](https://github.com/adunext/adu-motion-video)
-(MIT) Python pipeline. The current talking-head path in `packages/koubo` is
-JavaScript and does not need Python.
+(MIT) Python pipeline. The talking-head path in `packages/koubo` is JavaScript first. When a resolver finds Python, ingest also runs `prepare-talk` (face track on a 60fps clock) and `mix-sfx` (unit cues remapped to the film clock). Missing Python must not fail ingest.
 
 Official MotionGit `.motion` packs are **not** included (they carry a personal
 account envelope and must not be redistributed). A complete 阿杜 feature UI is
