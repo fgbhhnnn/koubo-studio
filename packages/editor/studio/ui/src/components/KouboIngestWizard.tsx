@@ -7,9 +7,7 @@ import { createPortal } from 'react-dom';
 import { Check, Clapperboard, KeyRound, LoaderCircle, Upload } from 'lucide-react';
 import { useT } from '@/i18n';
 import { studioHost } from '@/lib/host';
-import {
-  canStartIngest, initialWizardState, reduceWizard, type WizardState,
-} from '@/lib/koubo-wizard';
+import { canStartIngest, initialWizardState, reduceWizard } from '@/lib/koubo-wizard';
 import { Card, CardActions, CardButton } from './Card';
 
 type TemplateCard = {
