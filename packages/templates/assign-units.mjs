@@ -1,16 +1,17 @@
 /**
  * Assign classic-performance units across a talking-head cut plan.
  *
- * The three MIT authored units (claim / decompose / evidence) stay at their
- * source choreography clock. Protected motion windows play at 1x; only
- * inter-window gaps can shrink, and a trailing hold may extend up to
- * maxHoldFrames. Slot text is filled from the beat's own words — never the
- * pack's original copy.
+ * Slot text is filled from the beat's own words — never the pack's original
+ * copy — and typography reveals are then retimed onto this talk's clean
+ * word clock (see retime-unit.mjs). The authored motion order is kept:
+ * action windows may stretch or compress, but they are never reversed. A
+ * trailing hold may extend up to maxHoldFrames.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clipText, twoLines, clauseChunks } from './typography.mjs';
+import { retimeAssignedClip } from './retime-unit.mjs';
 export { clipText };
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -456,12 +457,13 @@ export function assignUnits(plan = {}, opts = {}) {
       const clipEnd = Math.min(duration, at + packed.duration);
       const outDur = clipEnd - at;
       if (outDur + 1e-6 < bounds.minDuration) continue;
-      const clock = mapUnitClock(scene, outDur);
       const chapter = String(clips.length + 1).padStart(2, '0');
       const filled = fillUnitSlots(scene, packed.words, {
         chapter,
         label: ROLE_LABEL[unitId],
       });
+      const timed = retimeAssignedClip(scene, packed, filled, at, outDur);
+      const clock = timed.clock;
       clips.push({
         id: `unit-${chapter}`,
         unitId,
@@ -471,7 +473,7 @@ export function assignUnits(plan = {}, opts = {}) {
         sourceStart: clock.sourceStart,
         sourceEnd: clock.sourceEnd,
         clock,
-        slots: filled.values,
+        slots: timed.values,
         text: filled.text,
         faceTracking: false,
         requiresFaceTracking: Boolean(scene.requiresFaceTracking),
