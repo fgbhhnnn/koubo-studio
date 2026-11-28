@@ -30,6 +30,7 @@ import { ProjectTitle } from '@/components/ProjectTitle';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { useSettings } from '@/components/settings/use-settings';
 import { SpendAsks } from '@/components/SpendAsks';
+import { KouboTemplateControl } from '@/components/KouboTemplateControl';
 import { Tooltip } from '@/components/Tooltip';
 import { UpdateButton, WebUpdateButton } from '@/components/UpdateButton';
 import { commandTo, topBarTools } from '@/studio/hub';
@@ -150,6 +151,7 @@ function Bar({ frame, loaded }: { frame: ReturnType<typeof useProjectFrame>; loa
       </div>
       <div className="min-w-0 flex-1" />
       <div className="pointer-events-auto flex min-w-0 items-center justify-end gap-1">
+        <KouboTemplateControl projectPath={loaded.project.path} />
         {/* how the page's panels are arranged */}
         <LayoutMenu frame={frame} className={TOP_BTN} />
         {/* the project's version history, whichever workbench is shown */}

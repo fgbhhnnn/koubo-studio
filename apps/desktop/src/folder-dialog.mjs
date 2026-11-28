@@ -43,3 +43,30 @@ export function programDialogOptions(options, platform = process.platform) {
     properties: [o.kind === 'folder' ? 'openDirectory' : 'openFile', 'showHiddenFiles', ...(o.kind === 'folder' && platform === 'darwin' ? ['treatPackageAsDirectory'] : [])],
   };
 }
+
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi'];
+
+/**
+ * The system's file dialog for a talking-head video (the 口播 wizard).
+ * @param {unknown} options
+ * @returns {import('electron').OpenDialogOptions}
+ */
+export function videoDialogOptions(options) {
+  const o = options && typeof options === 'object' ? /** @type {Record<string, unknown>} */ (options) : {};
+  const text = (/** @type {unknown} */ v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 120) : null);
+  const title = text(o.title) ?? '选择口播视频';
+  const at = typeof o.at === 'string' && o.at.length < 4096 && isAbsolute(o.at) ? o.at : null;
+  return {
+    title,
+    message: title,
+    buttonLabel: text(o.button) ?? '选择',
+    ...(at ? { defaultPath: at } : {}),
+    filters: [
+      { name: 'Videos', extensions: VIDEO_EXTENSIONS },
+      { name: 'All files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  };
+}
+
+export { VIDEO_EXTENSIONS };

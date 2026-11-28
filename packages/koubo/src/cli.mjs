@@ -9,6 +9,8 @@ import { refinePlanWithLlm } from './llm.mjs';
 import { cutMedia } from './cut.mjs';
 import { buildProject } from './project.mjs';
 import { createCompatImageGenerator, hasImageKey } from './images.mjs';
+import { ingestTalkingHead, safeName as ingestSafeName } from './ingest.mjs';
+import { loadKouboEnv } from './keys.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const KOUBO_ROOT = resolve(HERE, '..', '..', '..');
@@ -22,7 +24,7 @@ function printErr(io, ...args) {
 
 const USAGE = `koubo — Koubo Studio：口播自动去废话，套模板生成可剪辑工程，并在同一个编辑器里精修、导出
 
-  koubo ingest <video> [--out 目录] [--title 标题] [--transcript json]
+  koubo ingest <video> [--out 目录] [--title 标题] [--transcript json] [--template 模板id]
   koubo transcribe <video> --out transcript.json
   koubo plan <transcript.json> [--out plan.json] [--duration 秒]
   koubo cut <video> <plan.json> --out clean.mp4
@@ -117,10 +119,11 @@ async function cmdTranscribe(rest, flags, ctx) {
   if (!input) throw new Error('请提供视频或音频路径。');
   const out = flags.out || rest[1];
   if (!out) throw new Error('请用 --out 指定转写 JSON 路径。');
+  const env = loadKouboEnv({ env: ctx.env });
   print(ctx.io, '正在调用 ElevenLabs 词级转写…');
   const data = await transcribeFile(abs(input, ctx.cwd), {
-    apiKey: ctx.env.ELEVENLABS_API_KEY,
-    model: flags.model || ctx.env.KOUBO_SCRIBE_MODEL,
+    apiKey: env.ELEVENLABS_API_KEY,
+    model: flags.model || env.KOUBO_SCRIBE_MODEL,
     languageCode: flags.language || flags['language-code'],
   });
   const dest = abs(out, ctx.cwd);
@@ -136,7 +139,7 @@ async function cmdPlan(rest, flags, ctx) {
   const transcript = await loadTranscript(abs(input, ctx.cwd));
   const duration = flags.duration != null ? Number(flags.duration) : (transcript.audio_duration_secs || undefined);
   let plan = planCuts(transcript, { duration });
-  plan = await refinePlanWithLlm(plan, { env: ctx.env, transcript });
+  plan = await refinePlanWithLlm(plan, { env: loadKouboEnv({ env: ctx.env }), transcript });
   const dest = flags.out ? abs(flags.out, ctx.cwd) : null;
   if (dest) {
     await mkdir(dirname(dest), { recursive: true });
@@ -186,57 +189,23 @@ async function cmdProject(rest, flags, ctx) {
 
 async function cmdIngest(rest, flags, ctx) {
   const input = rest[0];
-  if (!input) throw new Error('用法：koubo ingest <视频> [--out 目录] [--title 标题] [--transcript json]');
+  if (!input) throw new Error('用法：koubo ingest <视频> [--out 目录] [--title 标题] [--transcript json] [--template 模板id]');
   const video = abs(input, ctx.cwd);
   if (!existsSync(video)) throw new Error(`找不到视频：${input}`);
   const title = flags.title || parsePath(video).name;
   const outDir = abs(flags.out || join(cwdOr(ctx), 'projects', safeName(title)), ctx.cwd);
-  await mkdir(join(outDir, 'koubo'), { recursive: true });
-  await mkdir(join(outDir, 'assets'), { recursive: true });
-
-  let transcript;
-  if (flags.transcript) {
-    print(ctx.io, `读取已有转写：${flags.transcript}`);
-    transcript = await loadTranscript(abs(flags.transcript, ctx.cwd));
-  } else {
-    print(ctx.io, '正在调用 ElevenLabs 词级转写…');
-    transcript = await transcribeFile(video, {
-      apiKey: ctx.env.ELEVENLABS_API_KEY,
-      model: flags.model || ctx.env.KOUBO_SCRIBE_MODEL,
-      languageCode: flags.language || flags['language-code'],
-    });
-  }
-  const transcriptPath = join(outDir, 'koubo', 'transcript.json');
-  await writeFile(transcriptPath, JSON.stringify(transcript, null, 2) + '\n', 'utf8');
-  print(ctx.io, `转写完成：${transcript.words?.length || 0} 个词`);
-
-  let duration = transcript.audio_duration_secs;
-  if (!Number.isFinite(duration)) duration = await probeDuration(video);
-  let plan = planCuts(transcript, { duration });
-  plan = await refinePlanWithLlm(plan, { env: ctx.env, transcript });
-  const planPath = join(outDir, 'koubo', 'plan.json');
-  await writeFile(planPath, JSON.stringify(plan, null, 2) + '\n', 'utf8');
-  print(ctx.io, formatPlanSummary(plan));
-  if (plan.needsReview) print(ctx.io, '注意：方案已标记为需要审看，重复/说错重来未硬剪。');
-
-  const cleanPath = join(outDir, 'assets', 'talking-clean.mp4');
-  print(ctx.io, `正在按方案裁切干净口播轨（${plan.keeps.length} 段）…`);
-  await cutMedia({ input: video, output: cleanPath, keeps: plan.keeps });
-
-  const result = await buildProject({
+  const result = await ingestTalkingHead({
+    video,
     outDir,
     title,
-    cleanVideo: cleanPath,
-    plan,
-    env: ctx.env,
-    imageGenerator: createCompatImageGenerator(ctx.env),
+    transcriptPath: flags.transcript ? abs(flags.transcript, ctx.cwd) : undefined,
+    templateId: flags.template === true ? null : (flags.template || null),
+    env: loadKouboEnv({ env: ctx.env }),
+    onProgress: ({ message }) => print(ctx.io, message),
   });
-  if (plan.llm?.used) print(ctx.io, `大模型整理：${plan.llm.reason}${plan.llm.note ? ' — ' + plan.llm.note : ''}`);
-  if (hasImageKey(ctx.env)) print(ctx.io, '插图槽已尝试调用生图接口；失败的槽位会保留占位图。');
-  print(ctx.io, `工程已生成：${result.film}`);
-  print(ctx.io, `打开编辑器：pnpm koubo open ${outDir}`);
-  print(ctx.io, `抽帧检查：pnpm koubo look ${outDir} 0-3`);
-  print(ctx.io, `导出 MP4：pnpm koubo render ${outDir}`);
+  print(ctx.io, `打开编辑器：pnpm koubo open ${result.outDir}`);
+  print(ctx.io, `抽帧检查：pnpm koubo look ${result.outDir} 0-3`);
+  print(ctx.io, `导出 MP4：pnpm koubo render ${result.outDir}`);
   return 0;
 }
 

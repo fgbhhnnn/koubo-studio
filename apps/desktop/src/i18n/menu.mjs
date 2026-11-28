@@ -6,7 +6,7 @@ export const MENU_WORDS = {
   en: {
     about: 'About {name}', checkForUpdates: 'Check for Updates…', betaUpdates: 'Beta Updates', settings: 'Settings…', services: 'Services',
     hide: 'Hide {name}', hideOthers: 'Hide Others', showAll: 'Show All', quit: 'Quit {name}',
-    file: 'File', newTab: 'New Tab', openProject: 'Open Project…', closeTab: 'Close Tab', reopenClosedTab: 'Reopen Closed Tab',
+    file: 'File', newTab: 'New Tab', openProject: 'Open Project…', newKoubo: 'New Talking-head…', closeTab: 'Close Tab', reopenClosedTab: 'Reopen Closed Tab',
     edit: 'Edit', undo: 'Undo', redo: 'Redo', cut: 'Cut', copy: 'Copy', paste: 'Paste', pasteAndMatchStyle: 'Paste and Match Style',
     delete: 'Delete', selectAll: 'Select All', substitutions: 'Substitutions', showSubstitutions: 'Show Substitutions',
     smartQuotes: 'Smart Quotes', smartDashes: 'Smart Dashes', textReplacement: 'Text Replacement', speech: 'Speech',
@@ -19,7 +19,7 @@ export const MENU_WORDS = {
   'zh-CN': {
     about: '关于 {name}', checkForUpdates: '检查更新…', betaUpdates: 'Beta 版更新', settings: '设置…', services: '服务',
     hide: '隐藏 {name}', hideOthers: '隐藏其他', showAll: '全部显示', quit: '退出 {name}',
-    file: '文件', newTab: '新建标签页', openProject: '打开项目…', closeTab: '关闭标签页', reopenClosedTab: '重新打开关闭的标签页',
+    file: '文件', newTab: '新建标签页', openProject: '打开项目…', newKoubo: '新建口播…', closeTab: '关闭标签页', reopenClosedTab: '重新打开关闭的标签页',
     edit: '编辑', undo: '撤销', redo: '重做', cut: '剪切', copy: '拷贝', paste: '粘贴', pasteAndMatchStyle: '粘贴并匹配样式',
     delete: '删除', selectAll: '全选', substitutions: '替换', showSubstitutions: '显示替换',
     smartQuotes: '智能引号', smartDashes: '智能破折号', textReplacement: '文本替换', speech: '语音',
@@ -32,7 +32,7 @@ export const MENU_WORDS = {
   ja: {
     about: '{name}について', checkForUpdates: 'アップデートを確認…', betaUpdates: 'ベータ版のアップデート', settings: '設定…', services: 'サービス',
     hide: '{name}を非表示', hideOthers: 'ほかを非表示', showAll: 'すべてを表示', quit: '{name}を終了',
-    file: 'ファイル', newTab: '新規タブ', openProject: 'プロジェクトを開く…', closeTab: 'タブを閉じる', reopenClosedTab: '閉じたタブを開き直す',
+    file: 'ファイル', newTab: '新規タブ', openProject: 'プロジェクトを開く…', newKoubo: 'トーク動画を新規作成…', closeTab: 'タブを閉じる', reopenClosedTab: '閉じたタブを開き直す',
     edit: '編集', undo: '取り消す', redo: 'やり直す', cut: 'カット', copy: 'コピー', paste: 'ペースト', pasteAndMatchStyle: 'ペーストしてスタイルを合わせる',
     delete: '削除', selectAll: 'すべてを選択', substitutions: '自動置換', showSubstitutions: '自動置換を表示',
     smartQuotes: 'スマート引用符', smartDashes: 'スマートダッシュ', textReplacement: 'テキストの置換', speech: '音声読み上げ',
@@ -45,7 +45,7 @@ export const MENU_WORDS = {
   ko: {
     about: '{name}에 관하여', checkForUpdates: '업데이트 확인…', betaUpdates: '베타 업데이트', settings: '설정…', services: '서비스',
     hide: '{name} 가리기', hideOthers: '기타 가리기', showAll: '모두 보기', quit: '{name} 종료',
-    file: '파일', newTab: '새로운 탭', openProject: '프로젝트 열기…', closeTab: '탭 닫기', reopenClosedTab: '닫은 탭 다시 열기',
+    file: '파일', newTab: '새로운 탭', openProject: '프로젝트 열기…', newKoubo: '토킹헤드 새로 만들기…', closeTab: '탭 닫기', reopenClosedTab: '닫은 탭 다시 열기',
     edit: '편집', undo: '실행 취소', redo: '실행 복귀', cut: '오려두기', copy: '복사하기', paste: '붙여넣기', pasteAndMatchStyle: '붙여넣고 스타일 일치시키기',
     delete: '삭제', selectAll: '전체 선택', substitutions: '대치', showSubstitutions: '대치 보기',
     smartQuotes: '스마트 인용', smartDashes: '스마트 대시', textReplacement: '텍스트 대치', speech: '말하기',
@@ -58,7 +58,7 @@ export const MENU_WORDS = {
   es: {
     about: 'Acerca de {name}', checkForUpdates: 'Buscar actualizaciones…', betaUpdates: 'Actualizaciones beta', settings: 'Ajustes…', services: 'Servicios',
     hide: 'Ocultar {name}', hideOthers: 'Ocultar otros', showAll: 'Mostrar todo', quit: 'Salir de {name}',
-    file: 'Archivo', newTab: 'Nueva pestaña', openProject: 'Abrir proyecto…', closeTab: 'Cerrar pestaña', reopenClosedTab: 'Volver a abrir la pestaña cerrada',
+    file: 'Archivo', newTab: 'Nueva pestaña', openProject: 'Abrir proyecto…', newKoubo: 'Nuevo vídeo hablado…', closeTab: 'Cerrar pestaña', reopenClosedTab: 'Volver a abrir la pestaña cerrada',
     edit: 'Edición', undo: 'Deshacer', redo: 'Rehacer', cut: 'Cortar', copy: 'Copiar', paste: 'Pegar', pasteAndMatchStyle: 'Pegar con el mismo estilo',
     delete: 'Eliminar', selectAll: 'Seleccionar todo', substitutions: 'Sustituciones', showSubstitutions: 'Mostrar sustituciones',
     smartQuotes: 'Comillas tipográficas', smartDashes: 'Guiones inteligentes', textReplacement: 'Sustitución de texto', speech: 'Voz',

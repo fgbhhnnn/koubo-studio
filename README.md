@@ -67,7 +67,9 @@ pnpm koubo studio
 
 ## 导入口播并出第一版
 
-把密钥放在环境变量里，**不要**写进仓库或工程文件：
+在桌面端：打开 Koubo Studio，在项目库里点「口播」（或菜单「文件 → 新建口播…」），上传视频，选择模式「口播」，可以先选模板也可以跳过由系统自动分配（目前是「口播讲解」），填好 ElevenLabs 密钥后一键出片。工程会在编辑器里打开；对话在左侧，可继续用手改时间线或用自然语言调整，再导出 MP4。密钥保存在本机 `~/.config/koubo/elevenlabs.env`（权限 0600），不要写进仓库或工程文件。设置 → 通用里也可以填写或更换这把密钥。
+
+用命令行时，把密钥放在环境变量里，或 `source ~/.config/koubo/elevenlabs.env`：
 
 ```bash
 export ELEVENLABS_API_KEY=你的密钥
@@ -86,7 +88,7 @@ pnpm koubo ingest /path/to/your-talking.mp4 --out ./projects/my-talk --title "�
 - `assets/talking-clean.mp4` — 按方案裁好的干净口播
 - `scenes/captions.html` — 动画字幕页（`window.film.frame(t)`）
 - `scenes/illustration.html` + `assets/illustrations/` — 插图槽（默认可替换占位）
-- `koubo/transcript.json`、`koubo/plan.json` — 转写与保留 / 删除方案
+- `koubo/transcript.json`、`koubo/plan.json`、`koubo/workflow.json` — 转写、保留 / 删除方案，以及所用模板
 
 打开并精修：
 

@@ -25,6 +25,9 @@ export { CLASSIC_PACK_DIR, ILLUSTRATION_HTML };
  *   imageGenerator?: Function,
  *   env?: object,
  *   includeClassicUnit?: boolean,
+ *   templateId?: string,
+ *   templateSource?: 'user' | 'auto',
+ *   sourceVideoName?: string,
  * }} opts
  */
 export async function buildProject(opts) {
@@ -89,7 +92,8 @@ export async function buildProject(opts) {
     await writeFile(join(scenesDir, `${slot.id}.html`), page, 'utf8');
   }
 
-  if (opts.includeClassicUnit !== false && existsSync(join(CLASSIC_PACK_DIR, 'lib.js'))) {
+  const includeClassic = opts.includeClassicUnit ?? shouldIncludeClassic(opts.templateId);
+  if (includeClassic && existsSync(join(CLASSIC_PACK_DIR, 'lib.js'))) {
     await embedClassicUnit(outDir, { duration });
   }
 
@@ -100,13 +104,15 @@ export async function buildProject(opts) {
     duration,
     talkRel,
     illustrations: filled,
-    hasClassic: opts.includeClassicUnit !== false && existsSync(join(outDir, 'scenes', 'classic-unit.html')),
+    hasClassic: includeClassic && existsSync(join(outDir, 'scenes', 'classic-unit.html')),
   });
   await writeFile(join(outDir, 'film.html'), film, 'utf8');
 
   await writeFile(join(dataDir, 'plan.json'), JSON.stringify(plan, null, 2) + '\n', 'utf8');
   await writeFile(join(dataDir, 'illustrations.json'), JSON.stringify(filled, null, 2) + '\n', 'utf8');
   await writeFile(join(dataDir, 'README.md'), renderProjectNotes({ title, plan, filled }), 'utf8');
+  const workflow = workflowRecord(opts, plan);
+  await writeFile(join(dataDir, 'workflow.json'), JSON.stringify(workflow, null, 2) + '\n', 'utf8');
 
   const skillSrc = join(HERE, '..', 'skills', 'koubo-talking', 'SKILL.md');
   const skillDst = join(outDir, 'skills', 'koubo-talking', 'SKILL.md');
@@ -117,6 +123,8 @@ export async function buildProject(opts) {
     film: join(outDir, 'film.html'),
     duration,
     illustrations: filled,
+    templateId: workflow.templateId,
+    templateSource: workflow.templateSource,
   };
 }
 
@@ -367,7 +375,7 @@ if (window.READY && typeof window.READY.then === 'function') {
 function renderProjectNotes({ title, plan, filled }) {
   return `# ${title}
 
-这是 Koubo Studio 生成的口播工程，可用本仓库的 Studio / 桌面端打开 \`film.html\`，用右侧对话继续改字幕、插图或裁切，再导出 MP4。
+这是 Koubo Studio 生成的口播工程，可用本仓库的 Studio / 桌面端打开 \`film.html\`，用左侧对话继续改字幕、插图或裁切，再导出 MP4。
 
 ${formatPlanSummary(plan)}
 
@@ -379,4 +387,73 @@ ${filled.length ? filled.map((s) => `- \`${s.id}\` @ ${s.at.toFixed(2)}s（${s.p
 `;
 }
 
-export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml };
+
+function shouldIncludeClassic(templateId) {
+  if (!templateId) return true;
+  return templateId === 'classic-performance';
+}
+
+function workflowRecord(opts, plan) {
+  const templateId = opts.templateId || plan?.template?.id || 'classic-performance';
+  const templateSource = opts.templateSource || plan?.template?.source || 'auto';
+  return {
+    mode: 'talking-head',
+    title: opts.title || null,
+    templateId,
+    templateSource,
+    sourceVideoName: opts.sourceVideoName || null,
+    needsReview: Boolean(plan?.needsReview),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Rebuild film.html and template pages from an existing plan and clean talking-head track,
+ * after the person picks a different pack in the editor.
+ *
+ * @param {{ outDir: string, templateId: string, env?: object, imageGenerator?: Function }} opts
+ */
+export async function reapplyTemplate(opts) {
+  const { readFile } = await import('node:fs/promises');
+  const { assignTemplate, getTemplate } = await import('@koubo/templates');
+  const outDir = opts.outDir;
+  const planPath = join(outDir, 'koubo', 'plan.json');
+  const workflowPath = join(outDir, 'koubo', 'workflow.json');
+  if (!existsSync(planPath)) throw new Error('此工程没有口播方案，无法更换模板。');
+  const plan = JSON.parse(await readFile(planPath, 'utf8'));
+  const chosen = assignTemplate({ id: opts.templateId });
+  getTemplate(chosen.template.id);
+  const cleanVideo = join(outDir, 'assets', 'talking-clean.mp4');
+  if (!existsSync(cleanVideo)) throw new Error('找不到干净口播轨，无法更换模板。');
+  let title = '口播成片';
+  if (existsSync(workflowPath)) {
+    try {
+      const prev = JSON.parse(await readFile(workflowPath, 'utf8'));
+      if (prev.title) title = prev.title;
+    } catch { /* ignore */ }
+  }
+  if (existsSync(join(outDir, 'film.html'))) {
+    const html = await readFile(join(outDir, 'film.html'), 'utf8');
+    const m = html.match(/<title>([^<]*)<\/title>/);
+    if (m?.[1]) title = m[1];
+  }
+  plan.template = { id: chosen.template.id, source: 'user', name: chosen.template.name || null };
+  let sourceVideoName = null;
+  if (existsSync(workflowPath)) {
+    try { sourceVideoName = JSON.parse(await readFile(workflowPath, 'utf8')).sourceVideoName || null; } catch { /* ignore */ }
+  }
+  return buildProject({
+    outDir,
+    title,
+    cleanVideo,
+    plan,
+    env: opts.env,
+    imageGenerator: opts.imageGenerator,
+    templateId: chosen.template.id,
+    templateSource: 'user',
+    sourceVideoName,
+  });
+}
+
+export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord };
+

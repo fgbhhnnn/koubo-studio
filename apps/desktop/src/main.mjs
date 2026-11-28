@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { problemLine, problemsFile, recentProblems, recordProblem } from '@koubo/editor/problems';
 import { FLAVOR, IDENTITY, PRODUCT_NAME } from './flavor.mjs';
 import { folderDialogOptions, programDialogOptions } from './folder-dialog.mjs';
+import { registerKouboIpc } from './koubo-ipc.mjs';
 import { childEnvironment, lastPathSource, loginShellEnvironment } from './environment.mjs';
 import { gatherAppReport } from './app-report.mjs';
 import { startWindowStudio } from './studio.mjs';
@@ -966,6 +967,22 @@ async function start() {
     openDesktop: () => updates?.manualCheck?.(menuLanguage),
   });
   agentUpdates.start();
+  registerKouboIpc(ipcMain, {
+    fromPage,
+    dialog,
+    win: () => win,
+    studioApi,
+    home: process.env.HOME || undefined,
+    env: process.env,
+    log,
+    openProject: async (folder) => {
+      const body = await studioApi('/api/projects', 'POST', { path: folder });
+      const project = body?.project ?? null;
+      if (project?.id) newTab(project.id);
+      return project;
+    },
+  });
+
   const agentHandle = (channel, fn) => ipcMain.handle(channel, (event, opts) => {
     if (!fromPage(event)) throw new Error('not the window\'s page');
     return fn(opts ?? {});
@@ -1048,6 +1065,12 @@ async function start() {
       packaged: app.isPackaged,
       toggleChat: () => activeView()?.webContents.send('desktop:toggle-chat'),
       openProject: () => void openProjectFolder(),
+      openKouboWizard: () => {
+        const view = views.get(HOME) ?? activeView();
+        view?.webContents.send('desktop:koubo-wizard');
+        if (views.get(HOME)) showPage(HOME);
+        focusWindow();
+      },
       openSettings: () => { focusWindow(); activeView()?.webContents.send('desktop:open-settings'); },
       reload: () => activeView()?.webContents.reload(),
       devTools: () => activeView()?.webContents.toggleDevTools(),

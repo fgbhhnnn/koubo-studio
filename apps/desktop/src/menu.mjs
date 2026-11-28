@@ -11,13 +11,13 @@ import { MENU_WORDS } from './i18n/menu.mjs';
  * "Beta Updates" (builds before they go to everyone); null from source, which has none.
  * `tabs`: a new tab (its launcher), the one in front closed, the one closed last opened again, the next or previous,
  * the nth (9: the last).
- * @param {{ productName: string, packaged: boolean, language?: string, toggleChat: () => void, openProject: () => void,
+ * @param {{ productName: string, packaged: boolean, language?: string, toggleChat: () => void, openProject: () => void, openKouboWizard?: () => void,
  *           reload: () => void, devTools: () => void, openSettings: () => void,
  *           tabs: { open: () => void, close: () => void, reopen: () => void, step: (by: number) => void, pick: (n: number) => void },
  *           updates?: { check: () => Promise<void>, beta: boolean, setBeta: (on: boolean) => void } | null }} actions
  * @returns {Electron.MenuItemConstructorOptions[]}
  */
-export function applicationMenuTemplate({ productName, packaged, language = 'en', toggleChat, openProject, reload, devTools, openSettings, tabs, updates = null }, platform = process.platform) {
+export function applicationMenuTemplate({ productName, packaged, language = 'en', toggleChat, openProject, openKouboWizard, reload, devTools, openSettings, tabs, updates = null }, platform = process.platform) {
   const mac = platform === 'darwin';
   const words = MENU_WORDS[language] ?? MENU_WORDS.en;
   /** @param {keyof typeof MENU_WORDS.en} key */
@@ -94,6 +94,7 @@ export function applicationMenuTemplate({ productName, packaged, language = 'en'
     {
       label: say('file'),
       submenu: [
+        { label: say('newKoubo'), accelerator: 'CmdOrCtrl+Shift+N', click: () => openKouboWizard?.() },
         { label: say('newTab'), accelerator: 'CmdOrCtrl+T', click: () => tabs.open() },
         { label: say('openProject'), accelerator: 'CmdOrCtrl+O', click: openProject },
         ...(!mac ? [{ type: 'separator' }, settings] : []),

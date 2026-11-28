@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { folderDialogOptions, programDialogOptions } from './folder-dialog.mjs';
+import { folderDialogOptions, programDialogOptions, videoDialogOptions } from './folder-dialog.mjs';
 
 test('with no options the dialog opens a project', () => {
   const o = folderDialogOptions(undefined);
@@ -43,4 +43,14 @@ test('choosing an agent installation folder opens a directory picker without fil
 
 test('the installation-folder picker accepts macOS app bundles as directories', () => {
   assert.deepEqual(programDialogOptions({ kind: 'folder' }, 'darwin').properties, ['openDirectory', 'showHiddenFiles', 'treatPackageAsDirectory']);
+});
+
+
+test('a talking-head video picker opens a file, not a folder', () => {
+  const o = videoDialogOptions({ title: '选择口播视频', button: '上传' });
+  assert.equal(o.title, '选择口播视频');
+  assert.equal(o.buttonLabel, '上传');
+  assert.ok(o.properties?.includes('openFile'));
+  assert.ok(!o.properties?.includes('openDirectory'));
+  assert.ok(o.filters?.[0].extensions.includes('mp4'));
 });
