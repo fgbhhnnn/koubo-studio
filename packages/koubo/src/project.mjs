@@ -143,7 +143,7 @@ function renderFilmHtml({ title, width, height, duration, talkRel, illustrations
     const top = 96;
     const w = 600;
     const h = 380;
-    return `  <iframe id="${escapeHtml(slot.id)}" src="scenes/${escapeHtml(slot.id)}.html#t=0,${slot.duration.toFixed(4)}" at="${slot.at.toFixed(4)}" style="left: ${left}px; top: ${top}px; width: ${w}px; height: ${h}px"></iframe>`;
+    return `  <iframe id="${escapeHtml(slot.id)}" src="scenes/${escapeHtml(slot.id)}.html#t=0,${slot.duration.toFixed(4)}" at="${slot.at.toFixed(4)}" size="960x600" style="left: ${left}px; top: ${top}px; width: ${w}px; height: ${h}px"></iframe>`;
   }).join('\n');
 
   const classicSection = hasClassic
@@ -162,7 +162,7 @@ function renderFilmHtml({ title, width, height, duration, talkRel, illustrations
 </head>
 <body>
 <section>
-  <iframe id="captions" src="scenes/captions.html#t=0,${d}" at="0" style="left: 0px; top: 760px; width: ${width}px; height: 320px"></iframe>
+  <iframe id="captions" src="scenes/captions.html#t=0,${d}" at="0" size="${width}x320" style="left: 0px; top: 760px; width: ${width}px; height: 320px"></iframe>
 </section>${illusSection}${classicSection}
 <section>
   <video id="talk" src="${escapeHtml(talkRel)}#t=0,${d}" at="0" style="object-fit: cover"></video>
@@ -172,16 +172,122 @@ function renderFilmHtml({ title, width, height, duration, talkRel, illustrations
 `;
 }
 
+/** Visible width of a caption token, in CJK-em units (one Han character = 1). */
+function captionCharUnits(text) {
+  let units = 0;
+  for (const ch of String(text)) {
+    if (/[\u1100-\u11FF\u2E80-\uA4CF\uAC00-\uD7AF\uF900-\uFAFF\uFE10-\uFE6F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(ch)) units += 1;
+    else if (/\s/.test(ch)) units += 0.3;
+    else units += 0.55;
+  }
+  return Math.max(units, 0.55);
+}
+
+function isCaptionHardBreak(text) {
+  return /[。！？!?；;]$/.test(String(text));
+}
+
+function isCaptionSoftBreak(text) {
+  return /[，、,]$/.test(String(text));
+}
+
+function isSkippedCaptionToken(text) {
+  const s = String(text ?? '').trim();
+  if (!s) return true;
+  return /^\[[^\]]+\]$/.test(s);
+}
+
+/**
+ * Pack word-level timestamps into one-line cues: break on sentence punctuation,
+ * on pauses, and before the bar would overflow. Non-current lines must not stay
+ * in the bar's layout (see renderCaptionsPage).
+ */
+function groupCaptionLines(words, opts = {}) {
+  const maxUnits = opts.maxUnits ?? 24;
+  const pauseGap = opts.pauseGap ?? 0.45;
+  const lines = [];
+  let cur = [];
+  let units = 0;
+
+  const flush = () => {
+    if (!cur.length) return;
+    lines.push({
+      start: cur[0].start,
+      end: cur[cur.length - 1].end,
+      words: cur,
+    });
+    cur = [];
+    units = 0;
+  };
+
+  for (const raw of words || []) {
+    const text = String(raw.text ?? '');
+    if (isSkippedCaptionToken(text)) continue;
+    const word = {
+      text,
+      start: Number(raw.start),
+      end: Number(raw.end),
+    };
+    const u = captionCharUnits(word.text);
+    const prev = cur[cur.length - 1];
+    const gap = prev ? word.start - prev.end : 0;
+    if (cur.length && ((prev && gap >= pauseGap) || units + u > maxUnits)) flush();
+    cur.push(word);
+    units += u;
+    if (isCaptionHardBreak(word.text)) flush();
+    else if (isCaptionSoftBreak(word.text) && units >= maxUnits * 0.55) flush();
+  }
+  flush();
+  return mergeShortCaptionLines(lines, maxUnits, pauseGap);
+}
+
+/** Fold a width-wrap orphan into the previous line. Do not undo a punctuation or pause break. */
+function mergeShortCaptionLines(lines, maxUnits, pauseGap) {
+  const hardMax = maxUnits + 4;
+  const unitsOf = (line) => line.words.reduce((n, w) => n + captionCharUnits(w.text), 0);
+  const out = [];
+  for (const line of lines) {
+    const prev = out[out.length - 1];
+    const u = unitsOf(line);
+    const hard = prev && isCaptionHardBreak(prev.words[prev.words.length - 1].text);
+    const gap = prev ? line.start - prev.end : 0;
+    if (prev && !hard && gap < pauseGap && u <= 6 && unitsOf(prev) + u <= hardMax) {
+      prev.words = prev.words.concat(line.words);
+      prev.end = line.end;
+    } else {
+      out.push({ start: line.start, end: line.end, words: line.words.slice() });
+    }
+  }
+  return out;
+}
+
+/**
+ * Which cue is on screen at t: the line that covers t, held until the next
+ * line starts. Returns -1 before the first line (unless it begins almost immediately).
+ */
+function captionLineAt(lines, t, duration = 0, opts = {}) {
+  const lead = opts.lead ?? 0.08;
+  if (!lines?.length) return -1;
+  if (t < lines[0].start - lead) return lines[0].start <= 0.8 ? 0 : -1;
+  for (let i = 0; i < lines.length; i++) {
+    const next = lines[i + 1];
+    const until = next ? next.start - lead : (Number(duration) || lines[i].end) + 1;
+    if (t < until) return i;
+  }
+  return lines.length - 1;
+}
+
 function renderCaptionsPage({ title, duration, words, width, height }) {
-  const data = {
-    title,
-    duration,
-    words: words.map((w) => ({
+  const lines = groupCaptionLines(words).map((line) => ({
+    start: Number(line.start.toFixed(3)),
+    end: Number(line.end.toFixed(3)),
+    words: line.words.map((w) => ({
       text: w.text,
       start: Number(w.start.toFixed(3)),
       end: Number(w.end.toFixed(3)),
     })),
-  };
+  }));
+  const data = { title, duration, width, height, lines };
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html>
@@ -202,8 +308,8 @@ function renderCaptionsPage({ title, duration, words, width, height }) {
     letter-spacing: 0.02em;
     text-shadow: 0 2px 12px rgba(0,0,0,.35);
   }
-  .word { display: inline-block; margin-right: 0.18em; opacity: 0.28; transform: translateY(12px); filter: blur(4px); }
-  .word.on { opacity: 1; transform: none; filter: none; color: #fff; }
+  .word { display: inline-block; margin-right: 0.18em; opacity: 0.45; color: #fff; }
+  .word.on { opacity: 1; }
   .word.cur { color: #8cb4ff; }
 </style>
 </head>
@@ -211,39 +317,46 @@ function renderCaptionsPage({ title, duration, words, width, height }) {
 <div id="stage"><div class="bar" id="bar"></div></div>
 <script>
 const DATA = ${json};
-function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
-function build() {
+function lineIndexAt(t) {
+  const lines = DATA.lines || [];
+  const lead = 0.08;
+  if (!lines.length) return -1;
+  if (t < lines[0].start - lead) return lines[0].start <= 0.8 ? 0 : -1;
+  for (let i = 0; i < lines.length; i++) {
+    const next = lines[i + 1];
+    const until = next ? next.start - lead : (DATA.duration || lines[i].end) + 1;
+    if (t < until) return i;
+  }
+  return lines.length - 1;
+}
+let shown = -1;
+function paint(i) {
   const bar = document.getElementById('bar');
   bar.replaceChildren();
-  DATA.words.forEach((w, i) => {
+  if (i < 0) return;
+  DATA.lines[i].words.forEach((w) => {
     const s = document.createElement('span');
     s.className = 'word';
-    s.dataset.i = String(i);
     s.textContent = w.text;
     bar.appendChild(s);
   });
 }
-build();
 function frame(t) {
-  const nodes = document.querySelectorAll('.word');
-  DATA.words.forEach((w, i) => {
-    const el = nodes[i];
+  const i = lineIndexAt(t);
+  if (i !== shown) { shown = i; paint(i); }
+  if (i < 0) return;
+  const line = DATA.lines[i];
+  const nodes = document.getElementById('bar').querySelectorAll('.word');
+  line.words.forEach((w, k) => {
+    const el = nodes[k];
     if (!el) return;
     const appear = t >= w.start - 0.08;
     const current = t >= w.start && t <= w.end + 0.05;
     el.classList.toggle('on', appear);
     el.classList.toggle('cur', current);
-    if (appear) {
-      const k = clamp((t - (w.start - 0.12)) / 0.18, 0, 1);
-      el.style.opacity = String(0.28 + 0.72 * k);
-      el.style.transform = 'translateY(' + ((1 - k) * 12).toFixed(1) + 'px)';
-      el.style.filter = k < 1 ? ('blur(' + ((1 - k) * 4).toFixed(1) + 'px)') : 'none';
-    } else {
-      el.style.opacity = '0.18';
-    }
   });
 }
-window.film = { duration: DATA.duration, frame };
+window.film = { duration: DATA.duration, width: DATA.width, height: DATA.height, frame };
 if (!window.filmHost) {
   const t0 = performance.now();
   const loop = () => {
@@ -303,7 +416,7 @@ function frame(t) {
   el.style.opacity = String(k);
   el.style.transform = 'translateY(' + ((1 - k) * 24).toFixed(1) + 'px) scale(' + (0.96 + 0.04 * k).toFixed(3) + ')';
 }
-window.film = { duration: DURATION, frame };
+window.film = { duration: DURATION, width: 960, height: 600, frame };
 if (!window.filmHost) {
   const t0 = performance.now();
   const loop = () => { frame((performance.now() - t0) / 1000); requestAnimationFrame(loop); };
@@ -471,5 +584,5 @@ export async function reapplyTemplate(opts) {
   });
 }
 
-export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord, copyPackFiles };
+export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord, copyPackFiles, groupCaptionLines, captionLineAt, captionCharUnits };
 
