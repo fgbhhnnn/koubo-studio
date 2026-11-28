@@ -12,6 +12,8 @@ test('catalog lists the talking-head pack and illustration page', () => {
   assert.equal(pack.path, CLASSIC_PACK_DIR);
   assert.ok(existsSync(join(CLASSIC_PACK_DIR, 'lib.js')));
   assert.ok(existsSync(join(CLASSIC_PACK_DIR, 'units', 'claim-into-container.js')));
+  assert.equal(pack.preview, 'preview.svg');
+  assert.ok(existsSync(join(CLASSIC_PACK_DIR, pack.preview)));
   assert.ok(existsSync(ILLUSTRATION_HTML));
   assert.ok(existsSync(join(TEMPLATES_ROOT, 'catalog.json')));
 });

@@ -1,4 +1,4 @@
-import { mkdir, writeFile, copyFile, readFile, cp } from 'node:fs/promises';
+import { mkdir, writeFile, copyFile, readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, basename, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -319,6 +319,23 @@ async function readTemplate(name) {
   return readFile(join(TEMPLATES_DIR, name), 'utf8');
 }
 
+/**
+ * Copy every file under `src` into `dest` with mkdir + copyFile.
+ * Packed Electron asar trees allow readdir and copyFile of individual files,
+ * but not a recursive directory copy of a packed folder.
+ */
+async function copyPackFiles(src, dest) {
+  if (!existsSync(src)) return;
+  await mkdir(dest, { recursive: true });
+  const entries = await readdir(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const from = join(src, entry.name);
+    const to = join(dest, entry.name);
+    if (entry.isDirectory()) await copyPackFiles(from, to);
+    else await copyFile(from, to);
+  }
+}
+
 async function embedClassicUnit(outDir, { duration }) {
   const dest = join(outDir, 'scenes', 'classic-runtime');
   await mkdir(dest, { recursive: true });
@@ -326,8 +343,7 @@ async function embedClassicUnit(outDir, { duration }) {
     const src = join(CLASSIC_PACK_DIR, name);
     if (existsSync(src)) await copyFile(src, join(dest, name));
   }
-  const unitsSrc = join(CLASSIC_PACK_DIR, 'units');
-  if (existsSync(unitsSrc)) await cp(unitsSrc, join(dest, 'units'), { recursive: true });
+  await copyPackFiles(join(CLASSIC_PACK_DIR, 'units'), join(dest, 'units'));
   const html = `<!doctype html>
 <html>
 <head>
@@ -455,5 +471,5 @@ export async function reapplyTemplate(opts) {
   });
 }
 
-export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord };
+export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord, copyPackFiles };
 

@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { listTemplates } from 'koubo';
 import {
-  ingestRequestOf, publicProgress, publicTemplates, uniqueProjectDir, runDesktopIngest,
+  ingestRequestOf, publicPreview, publicProgress, publicTemplates, uniqueProjectDir, runDesktopIngest,
 } from './koubo-ipc.mjs';
 
 test('ingest request requires an absolute video path and strips the key from the public request', () => {
@@ -51,7 +52,31 @@ test('public template list is catalog cards without filesystem paths', () => {
   ]);
   assert.equal(list[0].id, 'classic-performance');
   assert.equal(list[0].name['zh-CN'], '口播讲解');
+  assert.equal(list[0].preview, '');
+  assert.ok(!('path' in list[0]));
   assert.ok(!JSON.stringify(list).includes('/secret/path'));
+});
+
+test('publicTemplates embeds a pack preview as a data URL and still strips paths', () => {
+  const list = publicTemplates();
+  const pack = list.find((item) => item.id === 'classic-performance');
+  assert.ok(pack);
+  assert.match(pack.preview, /^data:image\/svg\+xml;base64,/);
+  const raw = JSON.stringify(list);
+  assert.ok(!raw.includes('/secret/path'));
+  for (const item of listTemplates()) {
+    assert.ok(!raw.includes(item.path), `must not leak ${item.path}`);
+  }
+  assert.ok(!('path' in pack));
+  assert.ok(!raw.includes('packages/templates'));
+});
+
+test('publicPreview refuses a file outside the pack', () => {
+  const root = '/secret/pack';
+  assert.equal(publicPreview({ path: root, preview: '../escape.svg' }), '');
+  assert.equal(publicPreview({ path: root, preview: '/etc/passwd' }), '');
+  assert.equal(publicPreview({ path: root, preview: 'preview.exe' }), '');
+  assert.equal(publicPreview({ path: root, preview: '' }), '');
 });
 
 test('uniqueProjectDir increments when the title folder already exists', async () => {

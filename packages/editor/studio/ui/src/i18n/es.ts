@@ -4106,4 +4106,7 @@ export const es: Words = {
       },
     },
   },
+  koubo: {
+    templatePreview: 'Vista previa de esta plantilla',
+  },
 };

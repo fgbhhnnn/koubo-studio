@@ -9,12 +9,14 @@ import { useT } from '@/i18n';
 import { studioHost } from '@/lib/host';
 import { canStartIngest, initialWizardState, reduceWizard } from '@/lib/koubo-wizard';
 import { Card, CardActions, CardButton } from './Card';
+import { KouboTemplatePreview } from './KouboTemplatePreview';
 
 type TemplateCard = {
   id: string;
   kind: string;
   name: { 'zh-CN'?: string; en?: string };
   description?: string;
+  preview?: string;
 };
 
 export function KouboIngestWizard({ open, onClose, onOpened }: {
@@ -94,7 +96,7 @@ export function KouboIngestWizard({ open, onClose, onOpened }: {
     <div className="fixed inset-0 z-[10080] flex items-center justify-center bg-black/50 p-4" onMouseDown={(e) => {
       if (e.target === e.currentTarget && !busy) onClose();
     }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="koubo-wizard-title" className="w-full max-w-[560px]" onMouseDown={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="koubo-wizard-title" className="w-full max-w-[640px]" onMouseDown={(e) => e.stopPropagation()}>
         <Card title={<span id="koubo-wizard-title">{t('koubo.wizardTitle')}</span>} body={t('koubo.wizardHint')} onClose={busy ? undefined : onClose} className="px-5 pb-4 pt-4">
           <ol className="mt-4 flex flex-col gap-4">
             <li className="flex flex-col gap-2">
@@ -129,10 +131,12 @@ export function KouboIngestWizard({ open, onClose, onOpened }: {
               <p className="text-[12.5px] leading-relaxed text-[var(--text-muted)]">{t('koubo.templateHint')}</p>
               <div className="flex flex-col gap-1.5">
                 <TemplateChoice selected={state.templateId === null} disabled={busy} title={t('koubo.templateAuto')} note={t('koubo.templateAutoNote')}
+                  preview={templates[0]?.preview} previewAlt={t('koubo.templatePreview')}
                   onClick={() => dispatch({ type: 'set-template', id: null })} />
                 {templates.map((item) => (
                   <TemplateChoice key={item.id} selected={state.templateId === item.id} disabled={busy}
                     title={nameOf(item)} note={item.description || t('koubo.templatePackNote')}
+                    preview={item.preview} previewAlt={t('koubo.templatePreview')}
                     onClick={() => dispatch({ type: 'set-template', id: item.id })} />
                 ))}
               </div>
@@ -180,12 +184,13 @@ function Label({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
-function TemplateChoice({ selected, disabled, title, note, onClick }: {
-  selected: boolean; disabled?: boolean; title: string; note: string; onClick: () => void;
+function TemplateChoice({ selected, disabled, title, note, preview, previewAlt, onClick }: {
+  selected: boolean; disabled?: boolean; title: string; note: string; preview?: string; previewAlt?: string; onClick: () => void;
 }) {
   return (
     <button type="button" disabled={disabled} aria-pressed={selected} onClick={onClick}
-      className={`flex items-start gap-2 rounded-md border px-3 py-2 text-left transition ${selected ? 'border-[var(--text)] bg-[var(--bg-hover)]' : 'border-[var(--border)] hover:bg-[var(--bg-hover)]'} disabled:opacity-60`}>
+      className={`flex items-start gap-3 rounded-md border px-3 py-2 text-left transition ${selected ? 'border-[var(--text)] bg-[var(--bg-hover)]' : 'border-[var(--border)] hover:bg-[var(--bg-hover)]'} disabled:opacity-60`}>
+      <KouboTemplatePreview src={preview} alt={previewAlt || ''} />
       <span className="min-w-0 flex-1">
         <strong className="block text-[13.5px] font-medium text-[var(--text)]">{title}</strong>
         <small className="block text-[12px] leading-relaxed text-[var(--text-muted)]">{note}</small>

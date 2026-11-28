@@ -368,7 +368,10 @@ function extractTarGz(archive, dest) {
     if (!root) throw new Error(`The Python archive did not contain a python root (looked in ${tmp}).`);
     mkdirSync(dirname(dest), { recursive: true });
     rmSync(dest, { recursive: true, force: true });
-    cpSync(root, dest, { recursive: true });
+    /* verbatimSymlinks: Node's default copy rewrites relative links
+       (python3 -> python3.12 in python-build-standalone) to absolute
+       paths under tmp, which break once this temp tree is deleted. */
+    cpSync(root, dest, { recursive: true, verbatimSymlinks: true });
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

@@ -4106,4 +4106,7 @@ export const ja: Words = {
       },
     },
   },
+  koubo: {
+    templatePreview: 'このテンプレートの見た目のプレビュー',
+  },
 };

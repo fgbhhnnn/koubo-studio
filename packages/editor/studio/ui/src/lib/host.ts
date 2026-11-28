@@ -257,7 +257,7 @@ export interface StudioHost {
    * Absent in the browser Studio (`koubo studio`).
    */
   koubo?: {
-    templates: () => Promise<Array<{ id: string; kind: string; name: { 'zh-CN'?: string; en?: string }; description?: string; units?: string[] }>>;
+    templates: () => Promise<Array<{ id: string; kind: string; name: { 'zh-CN'?: string; en?: string }; description?: string; units?: string[]; preview?: string }>>;
     keyStatus: () => Promise<{ hasKey: boolean; last4: string; source: 'env' | 'file' | null }>;
     setKey: (key: string) => Promise<{ hasKey: boolean; last4: string; source: 'file' | null }>;
     pickVideo: (words?: { title?: string; button?: string }) => Promise<string | null>;
