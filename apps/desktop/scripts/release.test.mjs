@@ -26,6 +26,15 @@ test('the staged installer install uses packed file: tarballs, not pnpm workspac
   assert.doesNotMatch(script, /node_modules\/openfilm\/product\.json/);
 });
 
+test('the installer stages a portable Python runtime for the desktop pack target', () => {
+  const script = readFileSync(new URL('./release.mjs', import.meta.url), 'utf8');
+  assert.match(script, /stagePythonRuntime\(runtime/);
+  assert.match(script, /pythonDownloadable\(platform, arch\)/);
+  assert.match(script, /runtime\/adu/);
+  assert.match(script, /Packaged builds must include Python/);
+  assert.doesNotMatch(script, /platform=linux/);
+});
+
 const powershell = process.env.OPENFILM_TEST_POWERSHELL || (process.platform === 'win32' ? 'powershell.exe' : null);
 test('installer preflight accepts an app-only tree and refuses to remove projects, personal assets or junctions', { skip: !powershell }, async (t) => {
   const scratch = await mkdtemp(join(tmpdir(), 'of-installer-protection-'));

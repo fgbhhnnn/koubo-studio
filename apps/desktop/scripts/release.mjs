@@ -20,9 +20,10 @@
  *      The staged `openfilm` package gets the build's product.json;
  *   2b. the programs the app needs that are not node modules, for the platform and chip built for, in the app's
  *      resources (runtime/; src/main.mjs puts them to use): ffmpeg and ffprobe with their license (src/ffmpeg-runtime.mjs),
- *      and the headless browser Studio and `openfilm` draw pages in (Playwright's, the revision the staged
- *      playwright-core takes). People never download either: on a slow or blocked connection the first start used to
- *      fail there;
+ *      the headless browser Studio and `openfilm` draw pages in (Playwright's, the revision the staged
+ *      playwright-core takes), and a portable CPython with the 阿杜 / adu-motion-video runtime wheels
+ *      (src/python-runtime.mjs, at runtime/python, plus the smoke-check scripts at runtime/adu). People never
+ *      download these: on a slow or blocked connection the first start used to fail there;
  *   3. electron-builder makes the .dmg (to download) and the .zip (for updates), signed with the Developer ID
  *      KOUBO_SIGN_IDENTITY or OPENFILM_SIGN_IDENTITY ("Name (TEAMID)") and notarized (APPLE_TEAM_ID, the
  *      `koubo-notary` keychain profile or KOUBO_NOTARY_PROFILE / OPENFILM_NOTARY_PROFILE), with the update feed written
@@ -132,15 +133,21 @@ if (offLock.length) {
 /* the build's product file */
 cpSync(productFile, join(stage, 'node_modules/@koubo/editor/product.json'));
 
-/* 2b. ffmpeg and the headless browser, for the platform and chip built for */
+/* 2b. ffmpeg, the headless browser, and a portable Python for the 阿杜 pipeline */
 const runtime = join(work, 'runtime');
 const { ffmpegDownloadable, fetchFfmpeg } = await import(pathToFileURL(join(desktop, 'src/ffmpeg-runtime.mjs')).href);
+const { pythonDownloadable, stagePythonRuntime } = await import(pathToFileURL(join(desktop, 'src/python-runtime.mjs')).href);
 const platform = win ? 'win32' : 'darwin';
 if (ffmpegDownloadable(platform, arch)) await fetchFfmpeg(join(runtime, 'ffmpeg'), { platform, arch, license: true });
 else console.warn(`No ffmpeg build for ${platform}-${arch}: this app downloads none either; people install their own.`);
 run(process.execPath, [join(stage, 'node_modules/playwright-core/cli.js'), 'install', 'chromium-headless-shell'], {
   env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright'), PLAYWRIGHT_HOST_PLATFORM_OVERRIDE: win ? 'win64' : arch === 'arm64' ? 'mac15-arm64' : 'mac15' },
 });
+if (pythonDownloadable(platform, arch)) {
+  await stagePythonRuntime(runtime, { platform, arch, aduDir: join(desktop, 'runtime/adu') });
+} else {
+  throw new Error(`Packaged builds must include Python; there is no portable CPython pin for ${platform}-${arch}.`);
+}
 
 /* 3. the app */
 const builder = require('electron-builder');
@@ -189,7 +196,7 @@ await builder.build({
     /* run by Electron as Node from outside the archive: the CLI the agents run, the agents' adapters */
     asarUnpack: ['node_modules/@koubo/editor/**', 'node_modules/@koubo/templates/**', 'node_modules/koubo/**', 'node_modules/@agentclientprotocol/**', 'node_modules/playwright-core/**'],
     files: ['src/**/*', 'shell/dist/**/*', 'package.json', 'node_modules/**/*'],
-    /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs */
+    /* ffmpeg, the headless browser, and the portable Python (2b), as files of their own beside the archive: they run as programs */
     extraResources: [{ from: runtime, to: 'runtime' }],
     directories: { output: out, buildResources: join(desktop, 'build') },
     electronFuses: {

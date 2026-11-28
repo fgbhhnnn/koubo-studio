@@ -39,7 +39,7 @@ Linux 安装包不是必须产物，本工作流不打 Linux 包。
 
 ## 本地自己打包
 
-需要 Node.js 22.18+、pnpm 9 和本机网络（打包时会下载 Electron、ffmpeg 与无头 Chromium）：
+需要 Node.js 22.18+、pnpm 9、本机 `python3`+pip（交叉安装 Windows 轮子时用），以及本机网络（打包时会下载 Electron、ffmpeg、无头 Chromium，以及一份便携 CPython 和阿杜运行时轮子）：
 
 ```bash
 pnpm install
@@ -51,6 +51,8 @@ pnpm --filter @koubo/desktop release -- --unsigned --platform=win --arch=x64
 ```
 
 产物在 `apps/desktop/.release/<arch>/out/`（该目录已被 git 忽略）。
+
+安装包里还会带上便携 Python（`resources/runtime/python`）和阿杜流水线依赖，用户不必自己装 Python。体积会明显增大（numpy / scipy / opencv-python-headless 比较重）：轮子加解释器解压后大约再占 400 MB，安装包本身大概会再大 120–180 MB。macOS 上这套 Python 依赖需要 macOS 12 或更高。详见 [`python-runtime.md`](python-runtime.md)。
 
 ## 限制
 

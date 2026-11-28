@@ -10,7 +10,7 @@
 | `packages/editor` | `@koubo/editor` | Studio 界面、时间线、film.html 格式、look / render 引擎、插件与技能 |
 | `packages/templates` | `@koubo/templates` | 口播一等模板（字幕页、插图槽、classic-performance 单位）。新风格加目录并登记 `catalog.json` |
 | `packages/shared` | `@koubo/shared` | 桌面端聊天和主进程共用的类型与解析 |
-| `apps/desktop` | `@koubo/desktop` | Electron 壳、右侧对话、安装包 |
+| `apps/desktop` | `@koubo/desktop` | Electron 壳、右侧对话、安装包（含 ffmpeg、无头浏览器，以及便携 Python：`runtime/python`） |
 
 对外只暴露 `koubo`（`pnpm koubo …`）。不要再让开发者先想一条 `openfilm` 命令。
 
@@ -28,3 +28,7 @@
 桌面端 PATH 上会再写一个同目标的 `openfilm` 垫片，只为还没改完的格式技能。技能都改成 `koubo` 之后即可删除，见 `apps/desktop/src/openfilm-command.mjs` 里的 COMPAT 注释。
 
 这些不是对外包名，也不表示产品叫 OpenFilm。归属见 `UPSTREAM.md` 与 `NOTICE.md`。
+
+## 桌面包里的便携 Python
+
+安装包会带一份 python-build-standalone 的 CPython 3.12，以及阿杜流水线的运行时轮子（numpy、Pillow、SciPy、opencv-python-headless、fonttools），放在 `resources/runtime/python`。应用通过 `KOUBO_PYTHON` 和 `KOUBO_ADU_PIPELINE` 找到解释器与 `pipeline.py doctor` 冒烟检查。从源码跑时可以没有 Python，编辑器不得因此启动失败。当前口播剪辑路径仍是 `packages/koubo` 里的 JavaScript。不把 MotionGit 官方 `.motion` 包打进安装包。细节见 [`python-runtime.md`](python-runtime.md)。

@@ -1,0 +1,10 @@
+# Runtime packages for the 阿杜 / adu-motion-video Python pipeline.
+# Version ranges are copied from https://github.com/adunext/adu-motion-video
+# (MIT, commit 4ae737a, 3.14.2-rc.1, requirements-runtime.txt).
+# Packaged desktop builds install these as wheels only (opencv-python-headless,
+# not the GUI or CUDA OpenCV builds) into the bundled portable CPython.
+numpy>=1.26,<3
+pillow>=10,<13
+scipy>=1.11,<2
+opencv-python-headless>=4.8,<6
+fonttools>=4.50,<5
