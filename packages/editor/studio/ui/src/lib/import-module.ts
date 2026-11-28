@@ -5,8 +5,8 @@
  * two after Studio's: `http://localhost:4749/s/<token>/ui.js` when Studio is on
  * 4747). A page reload that races the plugins server, or one that follows the
  * page renderer exiting while a talking-head preview is drawn, otherwise leaves
- * the shell on "这个编辑器的程序没有启动起来" / "Failed to fetch dynamically
- * imported module" and never tries again. A page that remounts the Studio shell
+ * the shell on the workbench's "did not start" message and "Failed to fetch dynamically
+ * imported module", and never tries again. A page that remounts the Studio shell
  * is not started from here: this only retries the import.
  */
 

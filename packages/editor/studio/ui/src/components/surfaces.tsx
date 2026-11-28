@@ -70,7 +70,7 @@ export const elementTagNow = (url: string): string | undefined => tagsDefined.ge
 export function elementTag(url: string): Promise<string> {
   let tag = elementTags.get(url);
   if (!tag) {
-    tag = importModule(url).then((module: { default?: unknown }) => {
+    tag = importModule<{ default?: unknown }>(url).then((module) => {
       const made = module.default;
       if (typeof made !== 'function' || !(made.prototype instanceof HTMLElement)) throw new Error('The default export of its module is not a custom element (a class that extends HTMLElement).');
       /* one its author defined under a name of their own keeps that name */
