@@ -26,7 +26,9 @@ test('renderFilmHtml has viewport, talk clip, captions page and no in-page audio
   assert.match(html, /<meta name="viewport" content="width=1920, height=1080">/);
   assert.match(html, /<video id="talk" src="assets\/talking-clean\.mp4#t=0,12\.5000"/);
   assert.match(html, /<iframe id="captions" src="scenes\/captions\.html#t=0,12\.5000"/);
+  assert.match(html, /size="1920x320"/);
   assert.match(html, /<iframe id="illus-1" src="scenes\/illus-1.html#t=0,4.0000"/);
+  assert.match(html, /size="960x600"/);
   assert.match(html, /classic-unit\.html/);
   assert.doesNotMatch(html, /<audio/);
   assert.match(html, /disabled/);
@@ -40,8 +42,12 @@ test('captions page exposes window.film.frame(t) and duration', () => {
     width: 1920,
     height: 320,
   });
-  assert.match(html, /window\.film = \{ duration: DATA\.duration, frame \}/);
+  assert.match(html, /window\.film = \{ duration: DATA\.duration, width: DATA\.width, height: DATA\.height, frame \}/);
+  assert.match(html, /"width":1920/);
+  assert.match(html, /"height":320/);
   assert.match(html, /"text":"你好"/);
+  assert.match(html, /function paint\(i\)/);
+  assert.doesNotMatch(html, /DATA\.words\.forEach/);
 });
 
 function run(cmd, args) {
@@ -76,6 +82,11 @@ test('buildProject writes film.html, captions, illustration slot and plan', asyn
     const captions = await readFile(join(out, 'scenes', 'captions.html'), 'utf8');
     assert.match(captions, /window\.film/);
     assert.match(captions, /function frame\(t\)/);
+    assert.match(captions, /width: DATA\.width, height: DATA\.height/);
+    assert.match(film, /size="1920x320"/);
+    const illus = await readFile(join(out, 'scenes', 'illustration.html'), 'utf8').catch(() => '');
+    const illusPage = await readFile(join(out, 'scenes', (result.illustrations?.[0]?.id || 'illus-1') + '.html'), 'utf8').catch(() => '');
+    if (illusPage) assert.match(illusPage, /width: 960, height: 600/);
     const writtenPlan = JSON.parse(await readFile(join(out, 'koubo', 'plan.json'), 'utf8'));
     assert.ok(Array.isArray(writtenPlan.keeps));
     const classic = await readFile(join(out, 'scenes', 'classic-unit.html'), 'utf8');
@@ -113,4 +124,99 @@ test('copyPackFiles copies unit files with copyFile and project.mjs does not cal
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+
+test('groupCaptionLines breaks on punctuation, pauses and width, and skips non-speech tokens', () => {
+  const { groupCaptionLines, captionCharUnits } = __test__;
+  assert.ok(captionCharUnits('讲') >= 1);
+  assert.ok(captionCharUnits('AI') < captionCharUnits('方法'));
+
+  const words = [
+    { text: '[音效]', start: 0, end: 0.3 },
+    { text: '今天', start: 0.4, end: 0.7 },
+    { text: '我们', start: 0.75, end: 1.0 },
+    { text: '开讲。', start: 1.05, end: 1.4 },
+    { text: '然后', start: 2.2, end: 2.5 },
+    { text: '继续', start: 2.55, end: 2.9 },
+  ];
+  const lines = groupCaptionLines(words);
+  assert.equal(lines.length, 2, 'hard stop then a pause should make two lines');
+  assert.equal(lines[0].words.map((w) => w.text).join(''), '今天我们开讲。');
+  assert.equal(lines[1].words.map((w) => w.text).join(''), '然后继续');
+  assert.ok(!lines.some((line) => line.words.some((w) => w.text === '[音效]')));
+
+  const long = [];
+  const chars = '把每天重复的工作打包一起丢给人工智能助手去处理完毕之后再检查结果';
+  let t = 0;
+  for (const ch of chars) {
+    long.push({ text: ch, start: t, end: t + 0.12 });
+    t += 0.13;
+  }
+  const packed = groupCaptionLines(long);
+  assert.ok(packed.length >= 2, 'a long run without punctuation still wraps before overflowing the bar');
+  for (const line of packed) {
+    const units = line.words.reduce((n, w) => n + captionCharUnits(w.text), 0);
+    assert.ok(units <= 24 + 1e-9, `line too wide: ${line.words.map((w) => w.text).join('')} (${units})`);
+  }
+});
+
+test('captionLineAt shows the spoken line at t, not the closing line', () => {
+  const { groupCaptionLines, captionLineAt } = __test__;
+  const words = [];
+  const early = '就拿我自己来说上个月收益来源于三条路第一条是付费咨询。';
+  const closing = '干中学才是普通人追上这个时代最快的方法。';
+  let t = 0;
+  for (const ch of early) {
+    words.push({ text: ch, start: t, end: t + 0.16 });
+    t += 0.18;
+  }
+  // gap, then a late closing sentence around 250s
+  t = 250;
+  for (const ch of closing) {
+    words.push({ text: ch, start: t, end: t + 0.16 });
+    t += 0.18;
+  }
+  const lines = groupCaptionLines(words);
+  const atSpoken = 21;
+  const i = captionLineAt(lines, atSpoken, 270);
+  assert.ok(i >= 0);
+  const textAt = lines[i].words.map((w) => w.text).join('');
+  assert.match(textAt, /三条路|付费咨询|收益|自己来说/);
+  assert.doesNotMatch(textAt, /干中学|最快的方法/);
+  const last = captionLineAt(lines, 252, 270);
+  const textLast = lines[last].words.map((w) => w.text).join('');
+  assert.match(textLast, /干中学|最快的方法/);
+  assert.ok(i !== last);
+});
+
+test('renderCaptionsPage only paints the current line and declares its own size', () => {
+  const { renderCaptionsPage, groupCaptionLines, captionLineAt } = __test__;
+  const early = '三条路，第一条是付费咨询。';
+  const closing = '干中学才是普通人追上这个时代最快的方法。';
+  const words = [];
+  let t = 18;
+  for (const ch of early) {
+    words.push({ text: ch, start: t, end: t + 0.16 });
+    t += 0.2;
+  }
+  t = 250;
+  for (const ch of closing) {
+    words.push({ text: ch, start: t, end: t + 0.16 });
+    t += 0.2;
+  }
+  const html = renderCaptionsPage({ title: '测试片', duration: 270, words, width: 1920, height: 320 });
+  assert.match(html, /window\.film = \{ duration: DATA\.duration, width: DATA\.width, height: DATA\.height, frame \}/);
+  assert.match(html, /"width":1920,"height":320/);
+  // The page script rebuilds #bar from one DATA.lines[i]; it must not mount every word up front.
+  assert.match(html, /bar\.replaceChildren\(\)/);
+  assert.match(html, /DATA\.lines\[i\]\.words\.forEach/);
+  const lines = groupCaptionLines(words);
+  const i = captionLineAt(lines, 21, 270);
+  const spoken = lines[i].words.map((w) => w.text).join('');
+  assert.match(spoken, /付费咨询|三条路|第一条/);
+  assert.doesNotMatch(spoken, /干中学/);
+  // DATA keeps every line for seeking, but each token is its own JSON string.
+  assert.match(html, /"text":"付"/);
+  assert.match(html, /"text":"干"/);
 });
