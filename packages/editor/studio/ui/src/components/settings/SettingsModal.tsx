@@ -22,6 +22,7 @@ import { ShortcutsSection } from './ShortcutsSection';
 import { SettingsButton, SettingsGroup, SettingsItem, SettingsPage, SettingsSegmented, SettingsSwitch } from './ui';
 import { useThemeMode, type ThemeMode } from './theme';
 import { AccountGroup } from './AccountGroup';
+import { KouboKeysGroup } from './KouboKeysGroup';
 import { StorageGroup, StorageEntry } from './StorageGroup';
 import { LargeDialog, LargeDialogGroup, LargeDialogPage, LargeDialogPlace, LargeDialogSearch } from '../LargeDialog';
 import { LibraryCategoriesGroup } from './LibraryCategoriesGroup';
@@ -149,6 +150,7 @@ function GeneralSection({ onStorage }: { onStorage: () => void }) {
   return (
     <SettingsPage>
       <AccountGroup />
+      <KouboKeysGroup />
       <SettingsGroup title={t('settings.appearance.group')}>
         <SettingsItem
           title={t('settings.appearance.theme')}

@@ -166,3 +166,8 @@ test('browser layouts ignore unavailable chat, an arrangement compares the block
   assert.equal(focus!.layout.chat, false);
   assert.equal(focus!.layout.assets, false);
 });
+
+test('Koubo product default puts the natural-language chat on the left', () => {
+  assert.equal(DEFAULT_WORKSPACE.chatSide, 'left');
+  assert.equal((DEFAULT_WORKSPACE as { chatSide?: string }).chatSide !== 'right', true);
+});

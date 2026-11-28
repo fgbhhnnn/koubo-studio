@@ -24,6 +24,17 @@ interface Native {
   revealPath(path: string): Promise<void>;
   pickFolder(options?: { title?: string; button?: string; at?: string }): Promise<string | null>;
   capture(rect: { x: number; y: number; width: number; height: number }): Promise<string | null>;
+  koubo: {
+    templates(): Promise<Array<{ id: string; kind: string; name: { 'zh-CN'?: string; en?: string }; description: string; units: string[] }>>;
+    keyStatus(): Promise<{ hasKey: boolean; last4: string; source: 'env' | 'file' | null }>;
+    setKey(key: string): Promise<{ hasKey: boolean; last4: string; source: 'file' | null }>;
+    pickVideo(words?: { title?: string; button?: string }): Promise<string | null>;
+    ingest(opts: { video: string; title?: string; templateId?: string | null; apiKey?: string; saveKey?: boolean }): Promise<{ ok: boolean; error?: string; path?: string; projectId?: string | null; templateId?: string; templateSource?: string; needsReview?: boolean }>;
+    workflow(path: string): Promise<{ mode: 'talking-head'; templateId: string | null; templateSource: string | null; title: string | null; needsReview: boolean } | null>;
+    changeTemplate(opts: { path: string; templateId: string }): Promise<{ ok: boolean; error?: string; templateId?: string; templateSource?: string; path?: string }>;
+    onProgress(listener: Listener<{ step: string; message: string; projectId?: string; error?: string }>): Stop;
+    onOpenWizard(listener: Listener<void>): Stop;
+  };
   agents: NonNullable<StudioHost['agents']>;
   /* the connectors (src/connectors.mjs) */
   connectors: NonNullable<StudioHost['connectors']>;
@@ -69,6 +80,7 @@ const workbench = signal<HostWorkbench | null>(null);
 /* ── the chat's column, left of Studio: open or not, how wide, and the assets drawer over it ── */
 const TOP_BAR = 32;
 const column = document.getElementById('of-chat')!;
+/* Koubo product default: the natural-language chat sits on the LEFT of the editor. */
 const layout = { open: true, width: 420, min: 340, studioMin: 640, side: 'left' as 'left' | 'right', libraryDock: 'left' as 'left' | 'right' | 'bottom' | 'chat' };
 /** the assets open in the column (Studio draws them, above the composer); `bottom`: the composer's height, all the
     chat shows then */
@@ -349,6 +361,7 @@ export const host: StudioHost = {
   notifications,
   update,
   folders: { pick: native.pickFolder, pathOf: native.pathForFile },
+  koubo: native.koubo,
   tabs: native.tabs,
   useSkill: (skill) => skillPicked.set(skill),
   skills: { add: () => skillAdd.set(undefined) },

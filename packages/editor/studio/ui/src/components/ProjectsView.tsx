@@ -8,6 +8,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Clapperboard,
   Folder,
   FolderInput,
   FolderOpen,
@@ -59,6 +60,7 @@ export function ProjectsView({
   projects,
   creating = false,
   onNewProject,
+  onKouboIngest,
   onOpenFolder,
   onGetFromGitHub,
   onLocate,
@@ -87,6 +89,8 @@ export function ProjectsView({
   creating?: boolean;
   /** "New project": made at once in the folder looked at (null: the top level), named as Studio names it (Untitled, Untitled 2…), and opened. */
   onNewProject: (folderId: string | null) => void;
+  /** Desktop 口播 wizard: upload a talking-head video and run the pipeline. */
+  onKouboIngest?: () => void;
   /** "Open folder…": a folder anywhere, opened as a project (the app's own dialog, else Studio's folder browser). */
   onOpenFolder: () => void;
   /** "Get from GitHub…": a repository or a folder in one, copied into the library and opened. */
@@ -759,8 +763,14 @@ export function ProjectsView({
             {/* ways to start (at the top level, not while searching): a new project, a folder on this computer, a
                 repository, side by side */}
             {!folderId && !query ? (
-              <div className={styles.starts}>
-                <button type="button" className={`${styles.startCard} ${styles.startNew}`} disabled={creating} data-start="new" onClick={() => onNewProject(null)}>
+              <div className={`${styles.starts}${onKouboIngest ? ' ' + styles.startsWithKoubo : ''}`}>
+                {onKouboIngest ? (
+                  <button type="button" className={`${styles.startCard} ${styles.startNew}`} disabled={creating} data-start="koubo" onClick={onKouboIngest}>
+                    <span className={styles.startPlus}><Clapperboard size={18} strokeWidth={2} /></span>
+                    <span className={styles.startText}><strong>{t('koubo.startCard')}</strong><small>{t('koubo.startNote')}</small></span>
+                  </button>
+                ) : null}
+                <button type="button" className={`${styles.startCard}${onKouboIngest ? '' : ' ' + styles.startNew}`} disabled={creating} data-start="new" onClick={() => onNewProject(null)}>
                   <span className={styles.startPlus}><Plus size={20} strokeWidth={2.2} /></span>
                   <span className={styles.startText}><strong>{t('projects.newProject')}</strong><small>{t('projects.newProjectNote')}</small></span>
                 </button>

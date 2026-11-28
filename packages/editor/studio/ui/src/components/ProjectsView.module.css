@@ -616,6 +616,7 @@
 /* ways to start, at the top of the projects, side by side: a new project (the wider card, its plus filled), a folder
    or a repository */
 .starts { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 18px 24px 6px; }
+.startsWithKoubo { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); }
 .startCard { position: relative; display: flex; align-items: center; gap: 14px; min-width: 0; height: 96px; padding: 0 20px; border-radius: 14px; overflow: hidden; text-align: left; background: var(--bg-field); color: var(--text); transition: background-color 140ms ease, transform 140ms ease; }
 .startCard:hover:not(:disabled) { background: var(--bg-hover); }
 .startCard:active:not(:disabled) { transform: scale(0.99); }

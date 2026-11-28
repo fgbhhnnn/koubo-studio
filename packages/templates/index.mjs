@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assignTemplate } from './assign.mjs';
 
 /** Root of this package: catalog, illustration.html, and template folders. */
 export const TEMPLATES_ROOT = dirname(fileURLToPath(import.meta.url));
 export const CLASSIC_PACK_DIR = join(TEMPLATES_ROOT, 'classic-performance');
 export const ILLUSTRATION_HTML = join(TEMPLATES_ROOT, 'illustration.html');
+
+export { assignTemplate };
 
 export function loadCatalog() {
   return JSON.parse(readFileSync(join(TEMPLATES_ROOT, 'catalog.json'), 'utf8'));
@@ -32,4 +35,13 @@ export function getTemplate(id) {
 
 export function templatePath(id) {
   return getTemplate(id).path;
+}
+
+/**
+ * Resolve a catalog entry to the shape `listTemplates()` returns (with paths),
+ * after assignTemplate has chosen an id.
+ */
+export function resolveAssignedTemplate(opts = {}) {
+  const { template, source } = assignTemplate(opts);
+  return { template: getTemplate(template.id), source, list: listTemplates() };
 }

@@ -133,7 +133,19 @@ contextBridge.exposeInMainWorld('openfilmNative', {
     discard: (id) => ipcRenderer.invoke('desktop:skills:discard', { id }),
     reveal: () => ipcRenderer.invoke('desktop:skills:reveal'),
   },
-  /* the app's own preferences (Settings → Developer) */
+  /* talking-head (口播) ingest wizard: keys in ~/.config/koubo, never in the project */
+  koubo: {
+    templates: () => ipcRenderer.invoke('desktop:koubo-templates'),
+    keyStatus: () => ipcRenderer.invoke('desktop:koubo-key-status'),
+    setKey: (key) => ipcRenderer.invoke('desktop:koubo-key-set', key),
+    pickVideo: (words) => ipcRenderer.invoke('desktop:koubo-pick-video', words ?? null),
+    ingest: (opts) => ipcRenderer.invoke('desktop:koubo-ingest', opts),
+    workflow: (path) => ipcRenderer.invoke('desktop:koubo-workflow', path),
+    changeTemplate: (opts) => ipcRenderer.invoke('desktop:koubo-change-template', opts),
+    onProgress: on('desktop:koubo-progress'),
+    onOpenWizard: on('desktop:koubo-wizard'),
+  },
+    /* the app's own preferences (Settings → Developer) */
   prefs: {
     get: () => ipcRenderer.invoke('desktop:prefs'),
     set: (next) => ipcRenderer.invoke('desktop:prefs:set', next),

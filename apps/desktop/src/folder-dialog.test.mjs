@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { folderDialogOptions, programDialogOptions } from './folder-dialog.mjs';
+import { folderDialogOptions, programDialogOptions, videoDialogOptions } from './folder-dialog.mjs';
+import { kouboWorkflowWords } from './i18n/koubo-workflow.mjs';
 
 test('with no options the dialog opens a project', () => {
   const o = folderDialogOptions(undefined);
@@ -43,4 +44,34 @@ test('choosing an agent installation folder opens a directory picker without fil
 
 test('the installation-folder picker accepts macOS app bundles as directories', () => {
   assert.deepEqual(programDialogOptions({ kind: 'folder' }, 'darwin').properties, ['openDirectory', 'showHiddenFiles', 'treatPackageAsDirectory']);
+});
+
+test('a talking-head video picker opens a file, not a folder', () => {
+  const o = videoDialogOptions({ title: '选择口播视频', button: '上传' });
+  assert.equal(o.title, '选择口播视频');
+  assert.equal(o.buttonLabel, '上传');
+  assert.ok(o.properties?.includes('openFile'));
+  assert.ok(!o.properties?.includes('openDirectory'));
+  assert.ok(o.filters?.[0].extensions.includes('mp4'));
+});
+
+
+test('talking-head video picker defaults come from the i18n dictionary, not inline copy', () => {
+  const en = videoDialogOptions(undefined);
+  assert.equal(en.title, kouboWorkflowWords('en').pickVideo);
+  assert.equal(en.buttonLabel, kouboWorkflowWords('en').choose);
+  const zh = videoDialogOptions(undefined, 'zh-CN');
+  assert.equal(zh.title, kouboWorkflowWords('zh-CN').pickVideo);
+  assert.equal(zh.buttonLabel, kouboWorkflowWords('zh-CN').choose);
+  assert.notEqual(en.title, zh.title);
+});
+
+test('koubo workflow words exist in every Studio language', () => {
+  const keys = Object.keys(kouboWorkflowWords('en')).sort();
+  for (const language of ['en', 'zh-CN', 'ja', 'ko', 'es']) {
+    assert.deepEqual(Object.keys(kouboWorkflowWords(language)).sort(), keys);
+    for (const key of keys) {
+      assert.ok(String(kouboWorkflowWords(language)[key]).trim());
+    }
+  }
 });

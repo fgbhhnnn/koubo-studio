@@ -28,6 +28,7 @@ import { SourceError, sourcesApi, type Example } from '@/lib/project-sources';
 import { LIST_WAIT_MS, within } from '@/lib/projects-page';
 import { readLastSubtitleStyle } from '@/lib/subtitles';
 import { ConfirmDialog } from './ConfirmDialog';
+import { KouboIngestWizard, useKouboWizard } from './KouboIngestWizard';
 import { ProjectsView, type LibraryProject } from './ProjectsView';
 import { FolderBrowserDialog, GitHubDialog } from './ProjectSources';
 import { ExamplesGallery, type ExamplePart } from './ExamplesGallery';
@@ -267,6 +268,7 @@ export function ProjectsPopover({
   onUseCanvas?: (example: Example) => void;
 }) {
   const t = useT();
+  const kouboWizard = useKouboWizard();
   const lib = useProjectLibrary(open);
   const { flash } = lib;
   const cover = useProjectCover(lib.coverChanged, React.useCallback(() => flash(t('projects.coverFailed')), [flash, t]));
@@ -507,6 +509,14 @@ export function ProjectsPopover({
 
   const content = (
     <>
+      <KouboIngestWizard
+        open={kouboWizard.open}
+        onClose={() => kouboWizard.setOpen(false)}
+        onOpened={(projectId) => {
+          kouboWizard.setOpen(false);
+          go(projectId, 'opening');
+        }}
+      />
       <div className="fixed inset-0 z-[10040] bg-black/60" onMouseDown={close} />
       <div
         role="dialog"
@@ -523,6 +533,7 @@ export function ProjectsPopover({
               place={view === 'recycle' ? 'projects' : view}
               onPlace={(place) => (place === 'projects' ? navigateProjects(null) : setView(place))}
               onStart={(workbench) => void newProject(null, workbench)}
+              onKouboIngest={kouboWizard.available ? () => kouboWizard.setOpen(true) : undefined}
               starting={busy !== null}
             />
             <div className={resourceStyles.resourceContent}>
@@ -546,6 +557,7 @@ export function ProjectsPopover({
                 projects={lib.projects}
                 creating={busy !== null}
                 onNewProject={(folderId) => void newProject(folderId)}
+                onKouboIngest={kouboWizard.available ? () => kouboWizard.setOpen(true) : undefined}
                 onOpenFolder={() => void openFolder()}
                 onGetFromGitHub={() => setGithub({})}
                 onLocate={(project) => void locate(project)}

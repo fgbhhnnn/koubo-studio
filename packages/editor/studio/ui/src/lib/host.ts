@@ -250,6 +250,23 @@ export interface StudioHost {
     pick: (options?: { title?: string; button?: string; at?: string }) => Promise<string | null>;
     pathOf: (file: File) => string;
   };
+
+  /**
+   * Desktop talking-head (口播) workflow: set the ElevenLabs key, pick a video,
+   * optionally choose a template, run ingest, and change the template later.
+   * Absent in the browser Studio (`koubo studio`).
+   */
+  koubo?: {
+    templates: () => Promise<Array<{ id: string; kind: string; name: { 'zh-CN'?: string; en?: string }; description?: string; units?: string[] }>>;
+    keyStatus: () => Promise<{ hasKey: boolean; last4: string; source: 'env' | 'file' | null }>;
+    setKey: (key: string) => Promise<{ hasKey: boolean; last4: string; source: 'file' | null }>;
+    pickVideo: (words?: { title?: string; button?: string }) => Promise<string | null>;
+    ingest: (opts: { video: string; title?: string; templateId?: string | null; apiKey?: string; saveKey?: boolean }) => Promise<{ ok: boolean; error?: string; path?: string; projectId?: string | null; templateId?: string; templateSource?: string; needsReview?: boolean }>;
+    workflow: (path: string) => Promise<{ mode: 'talking-head'; templateId: string | null; templateSource: string | null; title: string | null; needsReview: boolean } | null>;
+    changeTemplate: (opts: { path: string; templateId: string }) => Promise<{ ok: boolean; error?: string; templateId?: string; templateSource?: string; path?: string }>;
+    onProgress: (listener: (event: { step: string; message: string; projectId?: string; error?: string }) => void) => () => void;
+    onOpenWizard: (listener: () => void) => () => void;
+  };
 }
 
 /** A question about spending, worded for the person (see `asks`). */

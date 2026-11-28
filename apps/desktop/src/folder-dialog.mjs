@@ -1,5 +1,6 @@
 // @ts-check
 import { isAbsolute } from 'node:path';
+import { kouboWorkflowWords } from './i18n/koubo-workflow.mjs';
 
 /**
  * The system's folder dialog, as Studio asks for it: to open a project (no options, the File menu's words), or with
@@ -43,3 +44,34 @@ export function programDialogOptions(options, platform = process.platform) {
     properties: [o.kind === 'folder' ? 'openDirectory' : 'openFile', 'showHiddenFiles', ...(o.kind === 'folder' && platform === 'darwin' ? ['treatPackageAsDirectory'] : [])],
   };
 }
+
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'm4v', 'webm', 'mkv', 'avi'];
+
+/**
+ * The system's file dialog for a talking-head video (the 口播 wizard).
+ * `language`: one of Studio's (i18n/language.mjs `appLanguage`); the fallback title and button come from
+ * i18n/koubo-workflow.mjs.
+ * @param {unknown} options
+ * @param {string} [language]
+ * @returns {import('electron').OpenDialogOptions}
+ */
+export function videoDialogOptions(options, language = 'en') {
+  const o = options && typeof options === 'object' ? /** @type {Record<string, unknown>} */ (options) : {};
+  const text = (/** @type {unknown} */ v) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 120) : null);
+  const words = kouboWorkflowWords(language);
+  const title = text(o.title) ?? words.pickVideo;
+  const at = typeof o.at === 'string' && o.at.length < 4096 && isAbsolute(o.at) ? o.at : null;
+  return {
+    title,
+    message: title,
+    buttonLabel: text(o.button) ?? words.choose,
+    ...(at ? { defaultPath: at } : {}),
+    filters: [
+      { name: 'Videos', extensions: VIDEO_EXTENSIONS },
+      { name: 'All files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  };
+}
+
+export { VIDEO_EXTENSIONS };

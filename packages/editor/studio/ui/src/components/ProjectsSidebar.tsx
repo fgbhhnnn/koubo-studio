@@ -3,7 +3,7 @@
  * examples; ways to start a project on a workbench (the edit, the canvas); and at its foot the Community's news and this version, with what is new in it and an update when there is one.
  */
 import React from 'react';
-import { Clapperboard, House, Scissors, Shapes, User, X } from 'lucide-react';
+import { Clapperboard, House, Mic, Scissors, Shapes, User, X } from 'lucide-react';
 import { api, type StudioVersion } from '@/api';
 import { useLanguage, useT } from '@/i18n';
 import { accountState } from '@/lib/account';
@@ -19,11 +19,13 @@ export type ProjectsPlace = 'projects' | 'examples';
 
 const ICON = { size: 16, strokeWidth: 1.6, 'aria-hidden': true } as const;
 
-export function ProjectsSidebar({ place, onPlace, onStart, starting }: {
+export function ProjectsSidebar({ place, onPlace, onStart, onKouboIngest, starting }: {
   place: ProjectsPlace;
   onPlace: (place: ProjectsPlace) => void;
   /** a new project, opened on this workbench */
   onStart: (workbench: 'edit' | 'canvas') => void;
+  /** Desktop 口播 wizard */
+  onKouboIngest?: () => void;
   starting: boolean;
 }) {
   const t = useT();
@@ -46,6 +48,11 @@ export function ProjectsSidebar({ place, onPlace, onStart, starting }: {
       </div>
       <div className={styles.heading}>{t('projects.sideStart')}</div>
       <div className={styles.group}>
+        {onKouboIngest ? (
+          <button type="button" className={styles.row} title={t('koubo.sideStartNote')} disabled={starting} data-projects-start="koubo" onClick={onKouboIngest}>
+            <Mic {...ICON} /><span>{t('koubo.sideStart')}</span>
+          </button>
+        ) : null}
         {start('edit', <Scissors {...ICON} />, t('projects.sideEdit'), t('projects.sideEditNote'))}
         {start('canvas', <Shapes {...ICON} />, t('projects.sideCanvas'), t('projects.sideCanvasNote'))}
       </div>
