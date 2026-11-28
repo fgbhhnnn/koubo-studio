@@ -20,6 +20,7 @@ import { registerKouboIpc } from './koubo-ipc.mjs';
 import { childEnvironment, lastPathSource, loginShellEnvironment } from './environment.mjs';
 import { gatherAppReport } from './app-report.mjs';
 import { startWindowStudio } from './studio.mjs';
+import { pageRendererReloads } from './page-renderer-restart.mjs';
 import { studioSecrets } from './studio-secrets.mjs';
 import { CHAT_MIN, STUDIO_MIN, WINDOW_MIN, placeOnDisplays, readWindowState, writeWindowState } from './window-state.mjs';
 import { createPagePresentation, paintPage, preparePage, revealPage, syncPagePointer } from './page-presentation.mjs';
@@ -153,9 +154,13 @@ const tellFfmpeg = (state) => { ffmpegFound = state; broadcast('desktop:ffmpeg',
 let updates = null;
 let quitting = false;
 let studioRestartsOnExit;
+/** pending tab reloads after a page renderer exit: cancelled on quit */
+const pageReloadStops = new Set();
 function markQuitting() {
   quitting = true;
   studioRestartsOnExit?.stop();
+  for (const stop of pageReloadStops) stop();
+  pageReloadStops.clear();
 }
 let cancelWindowClose = () => {};
 /** @type {ReturnType<typeof registerLocalAgentIpc> | null} */
@@ -229,17 +234,28 @@ function makeView(tabId) {
   v.setBounds({ x: 0, y: 0, width, height });
   guard(v.webContents, (url) => Boolean(studio) && url.startsWith(`${studio.origin}/`));
   /* what went wrong with the page, for the log (logs/studio.log) */
-  v.webContents.on('render-process-gone', (_event, { reason, exitCode }) => {
-    if (reason === 'clean-exit' || quitting) return;
-    const what = `Page renderer exited (${reason}, ${exitCode})`;
+  /* A talking-head preview can take the renderer down as the first frame is
+     drawn. Reloading every 500 ms without end remounted the Studio shell until
+     the plugins origin could no longer serve the edit workbench (ui.js). Quick
+     exits are retried a few times, then left (page-renderer-restart.mjs). */
+  let shownAt = Date.now();
+  v.webContents.on('did-finish-load', () => { shownAt = Date.now(); });
+  const reloads = pageRendererReloads({
+    reload: () => { if (!v.webContents.isDestroyed()) v.webContents.reload(); },
+    onRetry: (wait) => log(`${new Date().toISOString()} Page renderer will be brought back in ${wait}ms\n`),
+    onGiveUp: () => log(`${new Date().toISOString()} Page renderer exited repeatedly as the project opened; it is not reloaded again\n`),
+  });
+  pageReloadStops.add(reloads.stop);
+  v.webContents.on('render-process-gone', (_event, details) => {
+    if (details.reason === 'clean-exit' || quitting) return;
+    const what = `Page renderer exited (${details.reason}, ${details.exitCode})`;
     log(`${new Date().toISOString()} ${what}\n`);
-    studioProblem('page renderer', what, String(exitCode));
+    studioProblem('page renderer', what, String(details.exitCode));
+    reloads.afterGone(Date.now() - shownAt);
   });
   v.webContents.on('did-fail-load', (_event, code, description, url, mainFrame) => { if (mainFrame && code !== -3 && pagePresentation?.wantedId() === tabId) log(`page: ${description} (${code}) loading ${url.replace(/key=[^&]+/, 'key=…')}\n`); });
   v.webContents.on('unresponsive', () => { unresponsivePages.add(v); log('page: not responding\n'); });
   v.webContents.on('responsive', () => unresponsivePages.delete(v));
-  /* the page gone (a crash): it comes back where it was; the agents' turns go on in this process meanwhile */
-  v.webContents.on('render-process-gone', (_event, details) => { if (details.reason !== 'clean-exit' && !quitting) setTimeout(() => { if (!v.webContents.isDestroyed()) v.webContents.reload(); }, 500); });
   return v;
 }
 
