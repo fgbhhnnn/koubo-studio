@@ -6,7 +6,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, truncateSync, symlinkSync, rmSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright-core';
-import { startStudio } from 'openfilm/studio';
+import { startStudio } from '@koubo/editor/studio';
 import shellConfig from '../shell/vite.config.ts';
 
 function wav(size) {

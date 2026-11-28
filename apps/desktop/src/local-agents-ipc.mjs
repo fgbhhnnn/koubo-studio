@@ -47,7 +47,7 @@
 import { randomUUID } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { Worker } from 'node:worker_threads';
-import { recordProblem, problemsFile } from 'openfilm/problems';
+import { recordProblem, problemsFile } from '@koubo/editor/problems';
 import { LOG_SETTLE_MS } from './agent-logs.mjs';
 import { RECORDED_AGENTS, recordedModel } from './agent-records.mjs';
 import { skillStore } from './agent-skills.mjs';

@@ -224,15 +224,15 @@ test("the person's own developer_instructions in Codex's config, read as TOML wr
 
 test("an agent is told to run the app's openfilm by its whole path: its shell may find another one first on the PATH", () => {
   const command = openfilmCommand('/Users/me/Library/Application Support/OpenFilm/bin', 'darwin');
-  assert.equal(command, "'/Users/me/Library/Application Support/OpenFilm/bin/openfilm'", 'quoted, for the space in it');
+  assert.equal(command, "'/Users/me/Library/Application Support/OpenFilm/bin/koubo'", 'quoted, for the space in it');
   const told = agentInstructions(command);
   assert.ok(told.includes(`run \`${command}\` with no arguments`));
-  assert.match(told, /run every OpenFilm command by it, also where a skill says `openfilm`,\nas your shell may find another one first/);
+  assert.match(told, /run every Koubo Studio command by it, also where a skill says `openfilm`,\nas your shell may find another one first/);
   assert.ok(!told.includes('on your PATH'));
   assert.equal(openfilmCommand('C:\\Users\\me\\AppData\\Roaming\\OpenFilm\\bin', 'win32'), null, 'on Windows the name on the PATH');
   assert.equal(agentInstructions(null), INSTRUCTIONS);
-  assert.match(INSTRUCTIONS, /run `openfilm` with no arguments/);
-  assert.match(INSTRUCTIONS, /The `openfilm` on your PATH is this app's own/);
+  assert.match(INSTRUCTIONS, /run `koubo` with no arguments/);
+  assert.match(INSTRUCTIONS, /The `koubo` on your PATH is this app's own/);
   /* by its name to the agents whose PATH the app keeps: its own, Claude Code (CLAUDE_ENV_FILE), Codex (its config) */
   assert.deepEqual([...PATH_KEPT].sort(), ['byok', 'claude', 'codex', 'openfilm']);
 });

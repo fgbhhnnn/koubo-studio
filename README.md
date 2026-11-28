@@ -4,7 +4,9 @@
 
 仓库已公开：<https://github.com/fgbhhnnn/koubo-studio>。
 
-这是一个**完整的剪辑应用**：能打开工程、看片、改时间线与字幕，用右侧对话继续改，再导出成片。它基于 [OpenFilm](https://github.com/openfilm/openfilm) 的 Studio / 桌面端 / 渲染 / 对话（MIT），并把 [adu-motion-video](https://github.com/adunext/adu-motion-video) 的已发布镜头包（MIT）改编成可填充模板。产品名是 **Koubo Studio**，不是 OpenFilm，也不是阿杜导演；不要把本项目当成官方发行。商标边界见上游的 [`TRADEMARK.md`](TRADEMARK.md) 与本仓库 [`UPSTREAM.md`](UPSTREAM.md)。
+这是一个**完整的新项目**：导入口播、去废话、套模板、在 Studio 里精修、出片，都在本仓库完成。用户命令只有 `koubo`。编辑器、口播管线、模板和桌面端是同一套模块，不是在外部引擎外包一层胶水。
+
+代码来自 [OpenFilm](https://github.com/openfilm/openfilm)（MIT）的编辑器 / 渲染 / 桌面端，以及 [adu-motion-video](https://github.com/adunext/adu-motion-video)（MIT）已发布镜头包的改编模板。产品名是 **Koubo Studio**，不是 OpenFilm，也不是阿杜导演；不要把本项目当成官方发行。商标与上游版本见 [`TRADEMARK.md`](TRADEMARK.md)、[`NOTICE.md`](NOTICE.md) 与 [`UPSTREAM.md`](UPSTREAM.md)。模块怎么分工见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 能做什么
 
@@ -113,9 +115,11 @@ pnpm koubo plan packages/koubo/test/fixtures/transcript.json --out /tmp/plan.jso
 
 ```bash
 pnpm test:koubo
+pnpm --filter @koubo/templates test
+pnpm test
 ```
 
-覆盖：自然停顿合并、去废话 / 重复、保留区间裁切、`film.html` 关键结构。ffmpeg 相关用例会现场生成短素材，不依赖你的口播原片。
+`pnpm test:koubo` 覆盖：自然停顿合并、去废话 / 重复、保留区间裁切、`film.html` 关键结构，以及 `koubo` 命令用法。ffmpeg 相关用例会现场生成短素材，不依赖你的口播原片。`pnpm test` 还会跑编辑器和桌面端里能独立跑的测试。不要用真实密钥打网关。
 
 ## 密钥
 
@@ -135,13 +139,15 @@ pnpm test:koubo
 ## 仓库结构
 
 ```
-packages/openfilm/     编辑器、CLI、渲染（上游 OpenFilm，可见品牌已换成 Koubo Studio）
-apps/desktop/          桌面壳：Studio + 右侧对话
-packages/koubo/        口播管线、模板、单元测试
-skills/koubo-talking/  给对话助手看的口播模板说明
+packages/koubo/        用户命令 koubo：导入口播、方案、裁轨，以及 open / look / render
+packages/editor/       Studio、时间线、film 格式、渲染引擎（包名 @koubo/editor）
+packages/templates/    一等口播模板（@koubo/templates）：字幕、插图槽、classic-performance
+packages/shared/       桌面端聊天与主进程的共用类型（@koubo/shared）
+apps/desktop/          桌面壳：Studio + 右侧对话（@koubo/desktop）
+skills/koubo-talking/  给对话助手看的口播说明（与编辑器核心技能 talking 同步）
 ```
 
-出片只使用本项目的 `openfilm render`（经 `koubo render` 调用）。改编模板在 `packages/koubo/templates/classic-performance`。
+开发时按上表找模块即可，不必先对接两套上游仓库。出片走 `koubo render`（内部调用 `@koubo/editor/cli`）。新的口播风格加在 `packages/templates` 并登记 `catalog.json`。更细的说明见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 许可
 

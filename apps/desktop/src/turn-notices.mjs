@@ -5,7 +5,7 @@
  *
  * Pure: no Electron, so `node --test` runs it.
  */
-import { redact } from 'openfilm/problems';
+import { redact } from '@koubo/editor/problems';
 import { TURN_NOTICE_WORDS } from './i18n/turn-notices.mjs';
 
 /**

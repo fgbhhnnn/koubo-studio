@@ -10,7 +10,7 @@
  */
 import type { PromptPillCard, PromptReference, PromptReferenceKind } from '@/components/prompt-editor';
 import type { StudioRef, StudioRefImage, StudioSelection } from './app-bridge';
-import { linkOfCommand } from 'openfilm/studio-ui/lib/links.ts';
+import { linkOfCommand } from '@koubo/editor/studio-ui/lib/links.ts';
 
 const CLIP_KIND: Record<string, PromptReferenceKind> = {
   mg: 'clipMg', video: 'clipVideo', voice: 'clipVoice', sfx: 'clipSfx', music: 'clipMusic', caption: 'clipCaption',

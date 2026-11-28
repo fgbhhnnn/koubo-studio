@@ -5,9 +5,9 @@
 import { host } from './bridge';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from 'openfilm/studio-ui/App.tsx';
-import { FocusNav } from 'openfilm/studio-ui/components/FocusNav.tsx';
-import { applyStudioHost } from 'openfilm/studio-ui/lib/host.ts';
+import { App } from '@koubo/editor/studio-ui/App.tsx';
+import { FocusNav } from '@koubo/editor/studio-ui/components/FocusNav.tsx';
+import { applyStudioHost } from '@koubo/editor/studio-ui/lib/host.ts';
 import { mountChat } from '../chat/src/mount';
 import { CanvasModelPicker, canvasWritingModel } from '../chat/src/components/ModelPopover';
 import './shell.css';

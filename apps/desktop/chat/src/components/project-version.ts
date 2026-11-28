@@ -1,4 +1,4 @@
-import type { PromptDisplay, TurnAttachment } from '@openfilm/shared';
+import type { PromptDisplay, TurnAttachment } from '@koubo/shared';
 import type { FileChange } from '@/lib/file-changes';
 import type { Balance } from '@/lib/balance';
 

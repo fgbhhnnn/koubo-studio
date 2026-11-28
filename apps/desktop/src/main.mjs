@@ -13,7 +13,7 @@ import { BaseWindow, Menu, Notification, WebContentsView, app, clipboard, dialog
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { problemLine, problemsFile, recentProblems, recordProblem } from 'openfilm/problems';
+import { problemLine, problemsFile, recentProblems, recordProblem } from '@koubo/editor/problems';
 import { FLAVOR, IDENTITY, PRODUCT_NAME } from './flavor.mjs';
 import { folderDialogOptions, programDialogOptions } from './folder-dialog.mjs';
 import { childEnvironment, lastPathSource, loginShellEnvironment } from './environment.mjs';
@@ -77,7 +77,7 @@ if (windows) app.setAppUserModelId(IDENTITY.bundleId);
 app.setPath('userData', IDENTITY.userData ?? join(app.getPath('appData'), PRODUCT_NAME));
 const DATA = app.getPath('userData');
 const LOGS = join(DATA, 'logs');
-const STUDIO_HOME = IDENTITY.studioHome ?? process.env.OPENFILM_HOME ?? join(app.getPath('home'), '.openfilm');
+const STUDIO_HOME = IDENTITY.studioHome ?? process.env.KOUBO_HOME ?? process.env.OPENFILM_HOME ?? join(app.getPath('home'), '.koubo');
 const STUDIO_PROBLEMS = problemsFile(STUDIO_HOME);
 mkdirSync(LOGS, { recursive: true });
 const log = (line) => { try { appendFileSync(join(LOGS, 'studio.log'), line); } catch { /* no log */ } };
@@ -838,12 +838,12 @@ async function start() {
   /* the person's own skills: Skills/ beside this app's projects (~/Movies/OpenFilm/Skills), as its `openfilm` finds them */
   /* which official skills are installed and which skills are off: the prefs.json every OpenFilm here shares (openfilm/skills usableSkills) */
   const prefsHome = env.OPENFILM_SHARED_HOME || env.OPENFILM_HOME;
-  const mySkills = process.env.OPENFILM_SKILLS || (env.OPENFILM_LIBRARY ? join(dirname(env.OPENFILM_LIBRARY), 'Skills') : (await import('openfilm/skills')).mySkillsDir());
+  const mySkills = process.env.OPENFILM_SKILLS || (env.OPENFILM_LIBRARY ? join(dirname(env.OPENFILM_LIBRARY), 'Skills') : (await import('@koubo/editor/skills')).mySkillsDir());
   /* every connector there is (openfilm/plugins: a plugin with a .mcp.json), by its first remote server */
   const connectors = createConnectors({
     dataDir: DATA, seal, unseal, log: (line) => log(`${line}\n`),
     openExternal: (url) => shell.openExternal(url),
-    defs: async () => (await import('openfilm/plugins')).pluginStates(prefsHome).flatMap((p) => {
+    defs: async () => (await import('@koubo/editor/plugins')).pluginStates(prefsHome).flatMap((p) => {
       const remote = Object.values(p.mcpServers ?? {}).find((server) => server.type === 'http');
       return remote ? [{ id: p.id, title: p.title?.en ?? p.id, url: remote.url }] : [];
     }),

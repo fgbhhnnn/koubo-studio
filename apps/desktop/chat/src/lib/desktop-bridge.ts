@@ -8,7 +8,7 @@
  * The shape matches apps/desktop/shell/bridge.ts; change one, change the other.
  */
 import type { Balance } from './balance';
-import type { HostAgentCatalog } from 'openfilm/studio-ui/lib/host.ts';
+import type { HostAgentCatalog } from '@koubo/editor/studio-ui/lib/host.ts';
 
 /** The coding agents the shell can connect to its MCP endpoint. */
 export type DesktopAgentId = 'claude' | 'codex' | 'cursor' | 'copilot' | 'opencode' | 'codebuddy' | 'devin';

@@ -1,4 +1,4 @@
-# @openfilm/shared
+# @koubo/shared
 
 ## 0.4.1
 

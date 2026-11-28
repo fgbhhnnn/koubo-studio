@@ -6,9 +6,9 @@ import {
   rescanMarkdown,
   type MarkdownBlock,
   type MarkdownScan,
-} from '@openfilm/shared/markdown';
+} from '@koubo/shared/markdown';
 import { app, type StudioRef } from '../app-bridge';
-import { parseLink } from 'openfilm/studio-ui/lib/links.ts';
+import { parseLink } from '@koubo/editor/studio-ui/lib/links.ts';
 import { audioLinkPath, projectAudioUrl } from '@/lib/audio-link';
 import { AttachmentPreview } from './AttachmentPreview';
 import { useT } from '@/i18n';

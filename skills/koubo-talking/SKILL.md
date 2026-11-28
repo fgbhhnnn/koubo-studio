@@ -1,6 +1,13 @@
+---
+name: talking
+description: How Koubo Studio ingests a talking-head film, applies caption and illustration templates, and how to refine one. Read it before you ingest, recut, or change captions and illustrations.
+---
+
 # Koubo talking-head skill
 
 You are helping someone refine a Koubo Studio talking-head film. The project is a standard OpenFilm-format film (`film.html`): pages, video and sound on a timeline. Hand edits belong in overrides so later agent passes do not overwrite them.
+
+Templates live in the `@koubo/templates` package (classic-performance captions + illustration slot). Ingest writes scenes from those templates; do not invent a parallel HTML contract.
 
 ## What this project already did
 
@@ -21,13 +28,14 @@ Read `koubo/plan.json` and `koubo/README.md` before cutting again. If `needsRevi
 - Do not play talking audio or BGM inside a page. Audio belongs on timeline `<audio>` / `<video>` tracks.
 - Do not turn official Adu / AduNext badges back on (`CONFIG.showOfficialBadge` stays false).
 - The optional `#classic-unit` clip is an adapted authored-unit wrapped as `window.film.frame(t)`. It is disabled by default; only enable it if the person wants that style as B-roll, and still keep sound on the timeline.
-- Render with `koubo render` (or `openfilm render` from this repo). Do not use adu-motion-video's `render_project.mjs` as the production renderer.
+- Render with `koubo render`. Do not use adu-motion-video's `render_project.mjs` as the production renderer.
 - When the person points at a range or a clip and speaks, edit that target. If the request is ambiguous, ask once, then act.
 
 ## Useful commands
 
 ```bash
-pnpm koubo look . 0-3
-pnpm koubo render .
-pnpm koubo plan koubo/transcript.json --out koubo/plan.json
+koubo ingest <video> --out . --title "标题"
+koubo look . 0-3
+koubo render .
+koubo plan koubo/transcript.json --out koubo/plan.json
 ```

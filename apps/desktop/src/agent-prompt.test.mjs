@@ -17,7 +17,7 @@ test("the app's own agent's prompt is OpenFilm's system prompt for an agent in t
 });
 
 test('another agent is told to run openfilm for the system prompt and the skills, and nothing of how a film is made', () => {
-  assert.match(INSTRUCTIONS, /run `openfilm` with no arguments and follow\swhat it prints/);
+  assert.match(INSTRUCTIONS, /run `koubo` with no arguments and follow\swhat it prints/);
   for (const word of ['window.film', 'openfilm look', 'Reply in the language']) assert.ok(!INSTRUCTIONS.includes(word), word);
 });
 

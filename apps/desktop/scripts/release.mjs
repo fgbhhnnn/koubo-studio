@@ -1,5 +1,5 @@
 /**
- * Build the Koubo Studio app people install: `pnpm --filter @openfilm/desktop release` (`--arch=x64` for Intel Macs,
+ * Build the Koubo Studio app people install: `pnpm --filter @koubo/desktop release` (`--arch=x64` for Intel Macs,
  * default this Mac's; `--unsigned` for a local or CI try; `--platform=win --arch=x64|arm64` for the Windows installer,
  * built here too; `--official` for a build that reads product.official.json; `--preview` for "Koubo Studio Preview",
  * an app of its own to try a build in).
@@ -12,7 +12,7 @@
  * (the update feed under its `desktop.updates`, also empty unless you set a Koubo feed).
  *
  *   1. the window's page (shell/: Studio's editor with the chat beside it) and Studio's editor on its own (the
- *      `openfilm` package's UI) are built (the chat's `@openfilm/shared` is bundled into the page);
+ *      `openfilm` package's UI) are built (the chat's `@koubo/shared` is bundled into the page);
  *   2. a stage folder gets the app's own files and a plain npm install of what it needs at run time: the `openfilm`
  *      package as `npm pack` makes it (what npm would publish), the agents' ACP adapters
  *      and the updater. Optional dependencies are left out: the adapters would bring the makers' own Claude Code and
@@ -49,7 +49,7 @@ import { lockedOverrides, versionsOffLock } from './locked-versions.mjs';
 const require = createRequire(import.meta.url);
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 /* the `openfilm` package (Studio, the CLI), where node finds it */
-const protocol = dirname(require.resolve('openfilm/package.json'));
+const protocol = dirname(require.resolve('@koubo/editor/package.json'));
 const asked = process.argv.find((a) => a.startsWith('--arch='))?.slice('--arch='.length);
 const arch = asked === 'x64' || asked === 'arm64' ? asked : process.arch === 'arm64' ? 'arm64' : 'x64';
 const win = process.argv.includes('--platform=win');

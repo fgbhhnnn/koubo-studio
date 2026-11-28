@@ -9,12 +9,12 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "dev": "pnpm --filter openfilm dev",
-    "dev:studio": "pnpm --filter openfilm dev",
+    "dev": "pnpm --filter @koubo/editor dev",
+    "dev:studio": "pnpm --filter @koubo/editor dev",
     "koubo": "node packages/koubo/bin/koubo.mjs",
     "test:koubo": "pnpm --filter koubo test",
-    "dev:desktop": "pnpm --filter @openfilm/desktop start",
-    "build": "pnpm --filter openfilm build:ui && pnpm --filter @openfilm/desktop build:shell",
+    "dev:desktop": "pnpm --filter @koubo/desktop start",
+    "build": "pnpm --filter @koubo/editor build:ui && pnpm --filter @koubo/desktop build:shell",
     "test": "pnpm -r --workspace-concurrency=1 --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
     "audit:public": "node scripts/audit-public.mjs",

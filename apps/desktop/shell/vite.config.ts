@@ -6,13 +6,13 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 /* the workbenches of OpenFilm's own plugins, built with the editor as Studio's own page builds them */
-import { workbenchImportMap, workbenchInputs } from '../../../packages/openfilm/studio/ui/workbenches.ts';
+import { workbenchImportMap, workbenchInputs } from '../../../packages/editor/studio/ui/workbenches.ts';
 
 /*
  * The app's window: one page, Studio's editor and the chat beside it, built into shell/dist and served by the app's
  * Studio as its editor (studio-process.mjs `editorDir`). Studio's sources are the open-source ones as they are.
  */
-const STUDIO = join(dirname(createRequire(import.meta.url).resolve('openfilm/package.json')), 'studio/ui/src/');
+const STUDIO = join(dirname(createRequire(import.meta.url).resolve('@koubo/editor/package.json')), 'studio/ui/src/');
 /* with forward slashes, as Vite names files on Windows too */
 const CHAT = normalizePath(fileURLToPath(new URL('../chat/src/', import.meta.url)));
 

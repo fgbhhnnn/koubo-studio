@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * `pnpm examples:sync`: the examples index and the posters it names, copied from a checkout of openfilm/examples into
- * packages/openfilm/examples-index, which the npm package and the desktop app take with them. Studio shows these at
+ * packages/editor/examples-index, which the npm package and the desktop app take with them. Studio shows these at
  * once, before the index on GitHub is read (studio/server/examples.mjs): the films themselves are fetched when one is
  * opened. This folder is replaced whole, and its SOURCE file says which commit it came from.
  *
@@ -40,7 +40,7 @@ if (check) {
   if (said !== source) fail(`SOURCE does not name ${commit.slice(0, 7)}, the commit of ${from}: run pnpm examples:sync`);
   const differ = wanted.filter((f) => !existsSync(join(TO, f)) || !readFileSync(join(from, f)).equals(readFileSync(join(TO, f))));
   if (differ.length) fail(`the copy differs from ${commit.slice(0, 7)} in ${differ.join(', ')}: run pnpm examples:sync`);
-  console.log(`examples:sync: packages/openfilm/examples-index is ${REPO} at ${commit.slice(0, 7)}`);
+  console.log(`examples:sync: packages/editor/examples-index is ${REPO} at ${commit.slice(0, 7)}`);
   process.exit(0);
 }
 

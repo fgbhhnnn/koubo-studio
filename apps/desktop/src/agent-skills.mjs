@@ -38,8 +38,8 @@ import { pathToFileURL } from 'node:url';
 
 const require = createRequire(import.meta.url);
 /* by its file URL: import() takes no Windows path (`D:\…`) */
-const skillsLib = () => import(pathToFileURL(require.resolve('openfilm/skills')).href);
-const pluginsLib = () => import(pathToFileURL(require.resolve('openfilm/plugins')).href);
+const skillsLib = () => import(pathToFileURL(require.resolve('@koubo/editor/skills')).href);
+const pluginsLib = () => import(pathToFileURL(require.resolve('@koubo/editor/plugins')).href);
 
 /** The agents whose own skills can be hidden in OpenFilm (byok: the app's own agent, Pi). */
 export const FILTERED_AGENTS = Object.freeze(['claude', 'codex', 'opencode', 'qwen', 'openfilm', 'byok']);

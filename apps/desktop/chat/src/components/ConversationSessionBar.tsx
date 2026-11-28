@@ -2,14 +2,14 @@
 
 import React from 'react';
 import { Archive, ArchiveRestore, ChevronDown, ChevronRight, MessageCircle, Pencil, Pin, PinOff, Plus, Search } from 'lucide-react';
-import { limitTitleWidth, SESSION_TITLE_MAX_WIDTH } from '@openfilm/shared';
+import { limitTitleWidth, SESSION_TITLE_MAX_WIDTH } from '@koubo/shared';
 import { Popover, keepFocus } from './Popover';
 import { Tooltip } from './Tooltip';
 import { useT } from '@/i18n';
 import type { ProjectSessionItem } from '@/lib/project-sessions';
 import { PANE_BAR, PANE_TITLE } from './dock-pane-bar';
-import { useClickOpen } from 'openfilm/studio-ui/lib/click-open.ts';
-import menu from 'openfilm/studio-ui/components/WorkspaceMenu.module.css';
+import { useClickOpen } from '@koubo/editor/studio-ui/lib/click-open.ts';
+import menu from '@koubo/editor/studio-ui/components/WorkspaceMenu.module.css';
 
 /** What a conversation's menus do: rename, pin, archive. */
 interface SessionActions {
