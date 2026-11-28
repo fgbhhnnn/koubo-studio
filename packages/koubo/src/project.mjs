@@ -13,7 +13,10 @@ import {
   loadUnitsManifest,
   sceneById,
   renderUnitPage,
+  renderEvidencePlate,
+  EVIDENCE_PLATE_KEYS,
 } from '@koubo/templates';
+import { prepareTalkFace, remapUnitsSfx, mixUnitSfx } from './adu-runtime.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 /** @deprecated use TEMPLATES_ROOT from @koubo/templates */
@@ -103,14 +106,38 @@ export async function buildProject(opts) {
 
   const includeClassic = opts.includeClassicUnit ?? shouldIncludeClassic(opts.templateId);
   let units = [];
+  let faceTrack = null;
+  let sfxRel = null;
   if (includeClassic && existsSync(join(CLASSIC_PACK_DIR, 'lib.js'))) {
+    const preview = assignUnits(plan, { templateId: opts.templateId || plan?.template?.id });
+    const talkAbs = join(outDir, talkRel);
+    if (preview.clips.length) {
+      const prepared = await prepareTalkFace({
+        cleanVideo: existsSync(talkAbs) ? talkAbs : opts.cleanVideo,
+        outDir: dataDir,
+        env: opts.env || process.env,
+      });
+      faceTrack = prepared.track || null;
+    }
     units = await embedClassicUnits(outDir, {
       duration,
       plan,
       templateId: opts.templateId || plan?.template?.id,
       talkRel,
       illustrations: filled,
+      faceTrack,
     });
+    const events = await remapUnitsSfx(units);
+    if (events.length) {
+      const sfxPath = join(assetsDir, 'unit-sfx.wav');
+      const mixed = await mixUnitSfx({
+        events,
+        duration,
+        outPath: sfxPath,
+        env: opts.env || process.env,
+      });
+      if (mixed.ok) sfxRel = 'assets/unit-sfx.wav';
+    }
   }
 
   const film = renderFilmHtml({
@@ -121,14 +148,16 @@ export async function buildProject(opts) {
     talkRel,
     illustrations: filled,
     units,
+    sfxRel,
   });
   await writeFile(join(outDir, 'film.html'), film, 'utf8');
 
   await writeFile(join(dataDir, 'plan.json'), JSON.stringify(plan, null, 2) + '\n', 'utf8');
   await writeFile(join(dataDir, 'illustrations.json'), JSON.stringify(filled, null, 2) + '\n', 'utf8');
   await writeFile(join(dataDir, 'units.json'), JSON.stringify(units, null, 2) + '\n', 'utf8');
-  await writeFile(join(dataDir, 'README.md'), renderProjectNotes({ title, plan, filled, units }), 'utf8');
-  const workflow = workflowRecord(opts, plan, units);
+  if (faceTrack) await writeFile(join(dataDir, 'face.json'), JSON.stringify(faceTrack, null, 2) + '\n', 'utf8');
+  await writeFile(join(dataDir, 'README.md'), renderProjectNotes({ title, plan, filled, units, faceTrack, sfxRel }), 'utf8');
+  const workflow = workflowRecord(opts, plan, units, { faceTrack, sfxRel });
   await writeFile(join(dataDir, 'workflow.json'), JSON.stringify(workflow, null, 2) + '\n', 'utf8');
 
   const skillSrc = join(HERE, '..', 'skills', 'koubo-talking', 'SKILL.md');
@@ -154,7 +183,7 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-function renderFilmHtml({ title, width, height, duration, talkRel, illustrations, units = [] }) {
+function renderFilmHtml({ title, width, height, duration, talkRel, illustrations, units = [], sfxRel = null }) {
   const d = duration.toFixed(4);
   const illusClips = illustrations.map((slot) => {
     const left = 1240;
@@ -176,6 +205,9 @@ function renderFilmHtml({ title, width, height, duration, talkRel, illustrations
   const illusSection = illustrations.length
     ? `\n<section>\n${illusClips}\n</section>`
     : '';
+  const sfxSection = sfxRel
+    ? `\n<section>\n  <audio id="unit-sfx" src="${escapeHtml(sfxRel)}#t=0,${d}" at="0"></audio>\n</section>`
+    : '';
 
   return `<!doctype html>
 <html>
@@ -187,7 +219,7 @@ function renderFilmHtml({ title, width, height, duration, talkRel, illustrations
 <body>
 <section>
   <iframe id="captions" src="scenes/captions.html#t=0,${d}" at="0" size="${width}x320" style="left: 0px; top: 760px; width: ${width}px; height: 320px"></iframe>
-</section>${illusSection}${unitSection}
+</section>${illusSection}${unitSection}${sfxSection}
 <section>
   <video id="talk" src="${escapeHtml(talkRel)}#t=0,${d}" at="0" style="object-fit: cover"></video>
 </section>
@@ -489,46 +521,42 @@ function unitTalkRel(talkRel) {
 }
 
 function pickSeqMedia(clip, illustrations) {
+  void clip;
+  void illustrations;
+  return {};
+}
+
+function evidencePlateInput(clip) {
+  const slots = clip.slots || {};
+  return {
+    title: slots['text-03'] || slots['text-01'] || '本期对照',
+    resultTitle: slots['text-11'] || slots['text-10'] || '本期结果',
+    claim: slots['text-02'] || '',
+    conclusion: slots['text-10'] || '',
+    observations: [0, 1, 2].map((i) => ({
+      before: slots[`text-0${7 + i}`] || `对照${i + 1}`,
+      after: slots[`text-0${4 + i}`] || `结果${i + 1}`,
+    })),
+    chapter: slots['text-00'] || clip.id,
+  };
+}
+
+async function writeEvidencePlates(outDir, clip) {
   if (clip.unitId !== 'evidence-focus') return {};
-  const srcs = (illustrations || []).map((s) => s.src).filter(Boolean);
+  const dir = join(outDir, 'assets', 'unit-media');
+  await mkdir(dir, { recursive: true });
+  const input = evidencePlateInput(clip);
   const media = {};
-  const keys = ['soft_match', 'soft_tpl', 'prev'];
-  keys.forEach((key, i) => {
-    const src = srcs[i] || srcs[0];
-    if (src) media[key] = src.startsWith('../') ? src : `../${src}`;
-  });
+  for (const [key, variant] of Object.entries(EVIDENCE_PLATE_KEYS)) {
+    const file = `${clip.id}-${key}.svg`;
+    const svg = renderEvidencePlate({ ...input, variant });
+    await writeFile(join(dir, file), svg, 'utf8');
+    media[key] = `../assets/unit-media/${file}`;
+  }
   return media;
 }
 
-async function writeEvidenceFallback(outDir, clip, seqMedia) {
-  if (clip.unitId !== 'evidence-focus') return seqMedia;
-  if (seqMedia.soft_match && seqMedia.soft_tpl && seqMedia.prev) return seqMedia;
-  const dir = join(outDir, 'assets', 'unit-media');
-  await mkdir(dir, { recursive: true });
-  const title = clip.slots?.['text-03'] || clip.slots?.['text-01'] || '本期对照';
-  const result = clip.slots?.['text-11'] || clip.slots?.['text-10'] || title;
-  const cards = [
-    ['soft_match', title],
-    ['soft_tpl', title],
-    ['prev', result],
-  ];
-  const next = { ...seqMedia };
-  for (const [key, label] of cards) {
-    if (next[key]) continue;
-    const file = `${clip.id}-${key}.svg`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600">
-<rect width="960" height="600" fill="#161616"/>
-<rect x="48" y="48" width="864" height="504" rx="28" fill="#1f1f1f" stroke="#333"/>
-<text x="80" y="280" fill="#f7f7f5" font-size="48" font-family="PingFang SC, sans-serif">${escapeHtml(label)}</text>
-</svg>
-`;
-    await writeFile(join(dir, file), svg, 'utf8');
-    next[key] = `../assets/unit-media/${file}`;
-  }
-  return next;
-}
-
-async function embedClassicUnits(outDir, { duration, plan, templateId, talkRel, illustrations }) {
+async function embedClassicUnits(outDir, { duration, plan, templateId, talkRel, illustrations, faceTrack = null }) {
   const assigned = assignUnits(plan, { templateId });
   if (!assigned.clips.length) return [];
   await embedClassicRuntime(outDir);
@@ -545,13 +573,14 @@ async function embedClassicUnits(outDir, { duration, plan, templateId, talkRel, 
     const { block } = bindAuthoredBlock(source, scene, clip.slots, clip.id);
     const boundName = `${clip.id}.js`;
     await writeFile(join(boundDir, boundName), block, 'utf8');
-    let seqMedia = pickSeqMedia(clip, illustrations);
-    seqMedia = await writeEvidenceFallback(outDir, clip, seqMedia);
+    const seqMedia = await writeEvidencePlates(outDir, clip);
+    void illustrations;
     const html = renderUnitPage({
       clip,
       talkRel: talk,
       seqMedia,
       boundScript: block,
+      faceTrack,
     });
     await writeFile(join(outDir, 'scenes', `${clip.id}.html`), html, 'utf8');
     written.push({
@@ -564,7 +593,7 @@ async function embedClassicUnits(outDir, { duration, plan, templateId, talkRel, 
   return written;
 }
 
-function renderProjectNotes({ title, plan, filled, units = [] }) {
+function renderProjectNotes({ title, plan, filled, units = [], faceTrack = null, sfxRel = null }) {
   return `# ${title}
 
 这是 Koubo Studio 生成的口播工程，可用本仓库的 Studio / 桌面端打开 \`film.html\`，用左侧对话继续改字幕、插图或裁切，再导出 MP4。
@@ -579,7 +608,10 @@ ${filled.length ? filled.map((s) => `- \`${s.id}\` @ ${s.at.toFixed(2)}s（${s.p
 
 ${units.length ? units.map((u) => `- \`${u.id}\`（${u.unitId}）@ ${Number(u.at).toFixed(2)}s，${Number(u.duration).toFixed(2)}s`).join('\n') : '（本片时长不够，或未选择口播讲解模板，没有排入镜头单位）'}
 
-手改会进 OpenFilm 格式的 \`overrides\`，智能体再改时不应覆盖。口播和 BGM 只走时间线音轨，不要在镜头页里播放声音。官方面标默认关闭。当前版本尚未做面部追踪。
+${faceTrack ? `面部追踪：${faceTrack.mode || 'unknown'}（${faceTrack.samples || 0} 个取样，时钟 ${faceTrack.fps || 60}fps）。` : '面部追踪未写入：将使用宽构图回退。'}
+${sfxRel ? `单位动作音效已重配到时间线：${sfxRel}。` : ''}
+
+手改会进 OpenFilm 格式的 \`overrides\`，智能体再改时不应覆盖。口播和 BGM 只走时间线音轨，不要在镜头页里播放声音。官方面标默认关闭。
 `;
 }
 
@@ -589,9 +621,10 @@ function shouldIncludeClassic(templateId) {
   return templateId === 'classic-performance';
 }
 
-function workflowRecord(opts, plan, units = []) {
+function workflowRecord(opts, plan, units = [], extra = {}) {
   const templateId = opts.templateId || plan?.template?.id || 'classic-performance';
   const templateSource = opts.templateSource || plan?.template?.source || 'auto';
+  const faceTrack = extra.faceTrack || null;
   return {
     mode: 'talking-head',
     title: opts.title || null,
@@ -600,6 +633,8 @@ function workflowRecord(opts, plan, units = []) {
     sourceVideoName: opts.sourceVideoName || null,
     needsReview: Boolean(plan?.needsReview),
     unitCount: Array.isArray(units) ? units.length : 0,
+    faceTracking: faceTrack ? faceTrack.mode : null,
+    unitSfx: extra.sfxRel || null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -652,5 +687,5 @@ export async function reapplyTemplate(opts) {
   });
 }
 
-export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord, copyPackFiles, groupCaptionLines, captionLineAt, captionCharUnits, embedClassicUnits, pickSeqMedia };
+export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord, copyPackFiles, groupCaptionLines, captionLineAt, captionCharUnits, embedClassicUnits, pickSeqMedia, writeEvidencePlates, evidencePlateInput };
 

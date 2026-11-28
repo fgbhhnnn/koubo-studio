@@ -35,6 +35,18 @@ test('renderFilmHtml has viewport, talk clip, captions page and no in-page audio
   assert.doesNotMatch(html, /<audio/);
   assert.doesNotMatch(html, /\bdisabled\b/);
   assert.doesNotMatch(html, /<section hidden>/);
+
+  const withSfx = __test__.renderFilmHtml({
+    title: '测试片',
+    width: 1920,
+    height: 1080,
+    duration: 12.5,
+    talkRel: 'assets/talking-clean.mp4',
+    illustrations: [],
+    units: [{ id: 'unit-01', unitId: 'claim-into-container', at: 0, duration: 15.466 }],
+    sfxRel: 'assets/unit-sfx.wav',
+  });
+  assert.match(withSfx, /<audio id="unit-sfx" src="assets\/unit-sfx\.wav#t=0,12\.5000"/);
 });
 
 test('captions page exposes window.film.frame(t) and duration', () => {
@@ -294,6 +306,23 @@ test('buildProject writes enabled unit clips timed to a long talking-head plan',
     const original = await readFile(join(CLASSIC_PACK_DIR, 'units', 'claim-into-container.js'), 'utf8');
     const copied = await readFile(join(out, 'scenes', 'classic-runtime', 'units', 'claim-into-container.js'), 'utf8');
     assert.equal(copied, original);
+    assert.match(page, /kouboFace/);
+    assert.match(page, /CONFIG\.filmTime = filmT/);
+    const ev = result.units.find((u) => u.unitId === 'evidence-focus');
+    assert.ok(ev, 'expected an evidence unit');
+    for (const key of ['soft_match', 'soft_tpl', 'prev']) {
+      const rel = ev.seqMedia[key];
+      assert.ok(rel, key);
+      const svg = await readFile(join(out, 'assets', 'unit-media', rel.split('/').pop()), 'utf8');
+      assert.match(svg, /<svg /);
+      assert.match(svg, /证据板|细节板|结果板/);
+      assert.match(svg, /#ff5f57/);
+    }
+    const bound = await readFile(join(out, 'scenes', 'classic-runtime', 'bound', 'unit-01.js'), 'utf8');
+    assert.doesNotMatch(bound, /不到一个月我/);
+    assert.doesNotMatch(bound, /竟然变现了四[^位]/);
+    const workflow = JSON.parse(await readFile(join(out, 'koubo', 'workflow.json'), 'utf8'));
+    assert.ok('faceTracking' in workflow);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

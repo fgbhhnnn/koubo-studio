@@ -31,4 +31,4 @@
 
 ## 桌面包里的便携 Python
 
-安装包会带一份 python-build-standalone 的 CPython 3.12，以及阿杜流水线的运行时轮子（numpy、Pillow、SciPy、opencv-python-headless、fonttools），放在 `resources/runtime/python`。应用通过 `KOUBO_PYTHON` 和 `KOUBO_ADU_PIPELINE` 找到解释器与 `pipeline.py doctor` 冒烟检查。从源码跑时可以没有 Python，编辑器不得因此启动失败。当前口播剪辑路径仍是 `packages/koubo` 里的 JavaScript。不把 MotionGit 官方 `.motion` 包打进安装包。细节见 [`python-runtime.md`](python-runtime.md)。
+安装包会带一份 python-build-standalone 的 CPython 3.12，以及阿杜流水线的运行时轮子（numpy、Pillow、SciPy、opencv-python-headless、fonttools），放在 `resources/runtime/python`。应用通过 `KOUBO_PYTHON` 和 `KOUBO_ADU_PIPELINE` 找到解释器与 `pipeline.py doctor` 冒烟检查。从源码跑时可以没有 Python，编辑器不得因此启动失败。口播一键出片在有便携 Python 时会调用 `pipeline.py prepare-talk` 与 `mix-sfx` 做面部追踪和单位音效重配；没有 Python 时仍可出片并回退为宽构图。不把 MotionGit 官方 `.motion` 包打进安装包。细节见 [`python-runtime.md`](python-runtime.md)。

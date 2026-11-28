@@ -24,6 +24,7 @@ function escapeJs(value) {
  *   talkRel?: string,
  *   seqMedia?: Record<string, string>,
  *   boundScript: string,
+ *   faceTrack?: object | null,
  * }} opts
  */
 export function renderUnitPage(opts) {
@@ -35,6 +36,7 @@ export function renderUnitPage(opts) {
   const seqMedia = opts.seqMedia || {};
   const boundScript = opts.boundScript;
   const clock = clip.clock || { segments: [] };
+  const faceTrack = opts.faceTrack || null;
 
   return `<!doctype html>
 <html>
@@ -59,7 +61,8 @@ window.CONFIG = Object.assign(window.CONFIG || {}, {
   talkFrames: 0,
   filmTalkSrc: ${escapeJs(talkRel)},
   filmTalkOffset: ${JSON.stringify(at)},
-  seqMedia: ${escapeJs(seqMedia)}
+  seqMedia: ${escapeJs(seqMedia)},
+  kouboFace: ${escapeJs(faceTrack)}
 });
 </script>
 <script src="classic-runtime/lib.js"></script>
@@ -121,9 +124,11 @@ function whenReady() {
     width: 1920,
     height: 1080,
     frame(t) {
+      const filmT = (window.CONFIG.filmTalkOffset || 0) + t;
+      window.CONFIG.filmTime = filmT;
       const srcT = mapSource(t);
       if (typeof render === 'function') render(srcT);
-      syncTalk((window.CONFIG.filmTalkOffset || 0) + t);
+      syncTalk(filmT);
       if (typeof wait === 'function') return wait();
     }
   };

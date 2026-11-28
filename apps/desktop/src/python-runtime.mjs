@@ -241,11 +241,21 @@ export async function fetchPython(dir, {
 export function stageAduScripts(runtimeDir, aduDir = defaultAduDir()) {
   const dest = join(runtimeDir, 'adu');
   mkdirSync(dest, { recursive: true });
-  for (const name of ['pipeline.py', 'requirements-runtime.txt', 'LICENSE', 'README.md']) {
+  for (const name of ['pipeline.py', 'face_track.py', 'sfx.py', 'requirements-runtime.txt', 'LICENSE', 'README.md']) {
     const from = join(aduDir, name);
     if (!existsSync(from)) throw new Error(`Missing ${from} (the 阿杜 smoke-check files).`);
     cpSync(from, join(dest, name));
   }
+  const dataDir = join(aduDir, 'data');
+  const haar = join(dataDir, 'haarcascade_frontalface_default.xml');
+  const yunet = join(dataDir, 'face_detection_yunet_2023mar.onnx');
+  if (!existsSync(haar)) throw new Error(`Missing ${haar} (OpenCV Haar cascade).`);
+  if (!existsSync(yunet)) throw new Error(`Missing ${yunet} (OpenCV YuNet face model).`);
+  mkdirSync(join(dest, 'data'), { recursive: true });
+  cpSync(haar, join(dest, 'data', 'haarcascade_frontalface_default.xml'));
+  cpSync(yunet, join(dest, 'data', 'face_detection_yunet_2023mar.onnx'));
+  const notice = join(dataDir, 'NOTICE.md');
+  if (existsSync(notice)) cpSync(notice, join(dest, 'data', 'NOTICE.md'));
   return dest;
 }
 

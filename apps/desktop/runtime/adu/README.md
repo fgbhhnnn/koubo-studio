@@ -6,10 +6,11 @@ adu-motion-video product, and it does **not** include official MotionGit
 `.motion` packs (those carry a personal account envelope and must not be
 redistributed).
 
-`pipeline.py doctor` is a Koubo smoke check: it confirms the bundled
-interpreter can import the packages in `requirements-runtime.txt` (the same
-ranges as MIT [adu-motion-video](https://github.com/adunext/adu-motion-video)).
-It does not run the upstream doctor (Node, FFmpeg, Chrome, skill `.venv`).
+`pipeline.py` is the Koubo entry for this runtime: `doctor` checks that the
+bundled wheels import; `prepare-talk` samples the clean talking-head track and
+writes a face track; `mix-sfx` synthesizes remapped unit action cues. It does
+not run the upstream doctor (Node, FFmpeg, Chrome, skill `.venv`), and it never
+loads official MotionGit `.motion` packs.
 
 ## How the app finds Python
 
@@ -24,6 +25,8 @@ pipeline is invoked:
 
 ```sh
 "$KOUBO_PYTHON" "$KOUBO_ADU_PIPELINE" doctor
+"$KOUBO_PYTHON" "$KOUBO_ADU_PIPELINE" prepare-talk --video talking-clean.mp4 --out DIR
+"$KOUBO_PYTHON" "$KOUBO_ADU_PIPELINE" mix-sfx --cues cues.json --out unit-sfx.wav
 ```
 
 `KOUBO_ADU_PIPELINE` is the packaged `runtime/adu/pipeline.py` (or this file
