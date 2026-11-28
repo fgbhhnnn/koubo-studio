@@ -80,6 +80,8 @@ function workbenches(): Map<string, { src: string; withPage: boolean }> {
 const SHARED: Record<string, [string, string]> = {
   'openfilm/studio': ['studio', at('./src/studio/index.ts')],
   'openfilm/studio/react': ['studio-react', at('./src/studio/react.ts')],
+  '@koubo/editor/studio': ['studio', at('./src/studio/index.ts')],
+  '@koubo/editor/studio/react': ['studio-react', at('./src/studio/react.ts')],
   ...Object.fromEntries(['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client'].map((name) => [name, [`shared-${name.replace('/', '-')}`, `${PAGE_COPY}${name}`]])),
 };
 
@@ -118,6 +120,7 @@ export function workbenchImportMap(): Plugin {
           const chunk = Object.values(bundle).find((c) => c.type === 'chunk' && c.isEntry && c.name === `workbench-${name}`);
           if (chunk?.type !== 'chunk') continue;
           imports[`openfilm/workbench/${name}`] = `/${chunk.fileName}`;
+          imports[`@koubo/editor/workbench/${name}`] = `/${chunk.fileName}`;
           /* a workbench is loaded by its name, not by the editor's own modules: its styles (and those of what it
              imports that the page has not linked) are the page's from the start, after the editor's, as when they
              were part of it; the code of one put in the page with it is fetched with the page's */

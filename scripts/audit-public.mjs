@@ -59,8 +59,16 @@ const ALLOWED = [
   { file: 'apps/desktop/build/installer.nsh', check: 'cjk', match: /^\s*StrCpy \$1 "(为保护你的工程和素材|OpenFilm 无法确认下方目录)/, why: 'the Simplified Chinese installer protection messages run before the app starts' },
   { file: 'packages/editor/studio/ui/src/components/library/CloneVoiceDialog.tsx', check: 'cjk', match: /^\s*(zh|ja|ko): '/, why: 'the sentence a person reads aloud to clone their voice, in their language' },
   { file: 'packages/editor/studio/ui/src/components/library/DocSections.tsx', check: 'cjk', match: /^const (HOW|OFF|COST) = \/\^\(/, why: "a guide's section headings as they are written in each language" },
-  { file: /^packages\/openfilm\/library\/covers\/[\w-]+\/look\.html$/, check: 'cjk', match: /class="t1"/, why: "a cover's sample words: the template's own example in its language" },
+  { file: /^packages\/(editor|openfilm)\/library\/covers\/[\w-]+\/look\.html$/, check: 'cjk', match: /class="t1"/, why: "a cover's sample words: the template's own example in its language" },
   { file: 'packages/editor/scripts/doubao-voices.test.mjs', check: 'cjk', match: /./, why: "the voice list's page as the service writes it, which the script reads" },
+  /* Koubo Studio product copy is written in Chinese; the inherited English-prose rule still applies to upstream editor sources */
+  { file: /^(README|UPSTREAM|NOTICE|CONTRIBUTING)\.md$/, check: 'cjk', match: /./, why: 'Koubo Studio product documentation is written in Chinese' },
+  { file: /^docs\/.+\.md$/, check: 'cjk', match: /./, why: 'Koubo Studio product documentation is written in Chinese' },
+  { file: /^\.github\/workflows\/desktop\.yml$/, check: 'cjk', match: /./, why: 'unsigned Koubo Studio installer notes for Chinese users' },
+  { file: 'apps/desktop/build/installer.nsh', check: 'cjk', match: /Koubo Studio 无法确认下方目录/, why: 'the Simplified Chinese installer protection messages run before the app starts' },
+  { file: /^packages\/koubo\//, check: 'cjk', match: /./, why: 'the Koubo CLI and talking-head pipeline are written in Chinese' },
+  { file: /^packages\/templates\//, check: 'cjk', match: /./, why: 'talking-head templates include Chinese captions, units and docs' },
+  { file: 'packages/editor/COMPAT.md', check: 'cjk', match: /./, why: 'Koubo Studio format-compatibility notes are written in Chinese' },
 ];
 
 const matches = (pattern, value) => (pattern instanceof RegExp ? pattern.test(value) : pattern === value);

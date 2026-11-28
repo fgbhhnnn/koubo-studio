@@ -67,6 +67,9 @@ test('a link shows what it names: the workbench of its file is shown, and the cl
     /* a plugin opens one (openfilm/studio open): the moment */
     await page.evaluate(() => import('@koubo/editor/studio').then((studio) => studio.open('film.html#t=1.25')));
     await selected(['b'], 1.25);
+    /* the same public module still resolves under the format-compatible name */
+    await page.evaluate(() => import('openfilm/studio').then((studio) => studio.open('film.html#t=1.25')));
+    await selected(['b'], 1.25);
     /* a stretch: the playhead at its start */
     await page.evaluate(() => window.studioCommand({ type: 'open', link: 'film.html#t=3,3.5' }));
     await selected(['b'], 3);

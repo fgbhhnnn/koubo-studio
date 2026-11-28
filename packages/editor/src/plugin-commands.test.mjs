@@ -126,7 +126,7 @@ test('openfilm canvas says what it takes, and where it works, as before it was t
   for (const args of [['canvas', '--help'], ['canvas', '-h'], ['canvas', 'apply', '--help']]) {
     const help = cli(args);
     assert.equal(help.status, 0, args.join(' '));
-    assert.match(help.stdout, /^openfilm canvas \[apply <steps> \| add <file…>\]\n\n  The project's canvas: /);
+    assert.match(help.stdout, /^koubo canvas \[apply <steps> \| add <file…>\]\n\n  The project's canvas: /);
     assert.match(help.stdout, /canvas add <file…> {5}files of the project put on the board/);
     assert.match(help.stdout, /canvas apply <steps> {3}steps on it, all taken or none/);
   }
@@ -140,7 +140,7 @@ test('openfilm canvas says what it takes, and where it works, as before it was t
   setPluginOn('canvas', false, where.home);
   const off = cli(['canvas']);
   assert.equal(off.status, 1);
-  assert.equal(off.stderr, `openfilm canvas: The canvas plugin is off: the person turns it on under Mine in Community (the button beside the chat's "+").\n`);
+  assert.equal(off.stderr, `koubo canvas: The canvas plugin is off: the person turns it on under Mine in Community (the button beside the chat's "+").\n`);
   rmSync(root, { recursive: true, force: true });
 });
 

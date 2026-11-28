@@ -32,5 +32,3 @@ dist/
 packages/koubo/.tmp/
 packages/koubo/test/.tmp/
 
-# never
-/home/box/.config

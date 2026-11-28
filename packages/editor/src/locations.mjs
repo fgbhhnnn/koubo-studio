@@ -61,9 +61,12 @@ export const libraryDefault = () => process.env.KOUBO_LIBRARY || process.env.OPE
  * that is set (a Studio kept apart, for work on OpenFilm itself, leaves nothing in the person's own folder), else the
  * Desktop.
  */
-export const exportsDefault = () => process.env.KOUBO_EXPORTS || process.env.OPENFILM_EXPORTS
-  || ((process.env.KOUBO_HOME || process.env.OPENFILM_HOME) ? join(process.env.KOUBO_HOME || process.env.OPENFILM_HOME, 'exports') : '')
-  || join(homedir(), 'Desktop');
+export const exportsDefault = () => {
+  const home = process.env.KOUBO_HOME || process.env.OPENFILM_HOME;
+  return process.env.KOUBO_EXPORTS || process.env.OPENFILM_EXPORTS
+    || (home ? join(home, 'exports') : '')
+    || join(homedir(), 'Desktop');
+};
 
 const savedDefault = () => join(dirname(libraryDefault()), 'Saved');
 

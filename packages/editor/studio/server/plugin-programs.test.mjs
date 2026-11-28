@@ -44,7 +44,7 @@ test('a plugin\'s program: started once for a project with node and openfilm on 
   assert.equal(programs.count, 2);
   /* node and openfilm there are files that run */
   assert.ok(statSync(join(bin, 'node')).mode & 0o100);
-  assert.match(readFileSync(join(bin, 'openfilm'), 'utf8'), /bin\/openfilm\.mjs' "\$@"\n$/);
+  assert.match(readFileSync(join(bin, 'openfilm'), 'utf8'), /bin\/cli\.mjs' "\$@"\n$/);
   /* turned off, or no longer let run: all of it stops */
   programs.stop(shots.uid);
   assert.equal(programs.count, 0);
