@@ -102,7 +102,9 @@ function syncTalk(filmT) {
       v.playsInline = true;
       v.setAttribute('muted', '');
       v.setAttribute('playsinline', '');
-      v.preload = 'auto';
+      /* none until this page is actually framed: a film of many unit pages must
+         not open a talk decoder in every iframe as the first frame is drawn */
+      v.preload = 'none';
       v.src = src;
       box.appendChild(v);
       const img = box.querySelector('img');

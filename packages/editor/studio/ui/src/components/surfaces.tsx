@@ -19,6 +19,7 @@
 import React from 'react';
 import { useT } from '@/i18n';
 import { sourcesApi, SourceError } from '@/lib/project-sources';
+import { importModule } from '@/lib/import-module';
 
 export interface SurfaceProps {
   projectId: string;
@@ -69,7 +70,7 @@ export const elementTagNow = (url: string): string | undefined => tagsDefined.ge
 export function elementTag(url: string): Promise<string> {
   let tag = elementTags.get(url);
   if (!tag) {
-    tag = import(/* @vite-ignore */ url).then((module: { default?: unknown }) => {
+    tag = importModule(url).then((module: { default?: unknown }) => {
       const made = module.default;
       if (typeof made !== 'function' || !(made.prototype instanceof HTMLElement)) throw new Error('The default export of its module is not a custom element (a class that extends HTMLElement).');
       /* one its author defined under a name of their own keeps that name */
