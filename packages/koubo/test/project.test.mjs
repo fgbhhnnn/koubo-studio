@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -9,6 +9,7 @@ import { buildProject, __test__ } from '../src/project.mjs';
 import { readFile as read } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CLASSIC_PACK_DIR } from '@koubo/templates';
 
 const fixture = JSON.parse(await read(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'transcript.json'), 'utf8'));
 
@@ -81,6 +82,34 @@ test('buildProject writes film.html, captions, illustration slot and plan', asyn
     assert.match(classic, /window\.film/);
     assert.match(classic, /renderAt/);
     assert.match(classic, /hideOfficialBadge/);
+    const unitName = 'claim-into-container.js';
+    const copied = await readFile(join(out, 'scenes', 'classic-runtime', 'units', unitName), 'utf8');
+    const original = await readFile(join(CLASSIC_PACK_DIR, 'units', unitName), 'utf8');
+    assert.equal(copied, original);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('copyPackFiles copies unit files with copyFile and project.mjs does not call fs.promises.cp', async () => {
+  const srcText = await readFile(new URL('../src/project.mjs', import.meta.url), 'utf8');
+  const importLine = srcText.split('\n').find((line) => line.includes("from 'node:fs/promises'"));
+  assert.ok(importLine, 'expected an fs/promises import');
+  assert.doesNotMatch(importLine, /\bcp\b/);
+  assert.doesNotMatch(srcText, /await\s+cp\s*\(/);
+  assert.match(srcText, /await readdir\(/);
+  assert.match(srcText, /await copyFile\(/);
+
+  const dir = await mkdtemp(join(tmpdir(), 'koubo-units-'));
+  try {
+    const src = join(dir, 'units');
+    const dest = join(dir, 'out', 'units');
+    await mkdir(join(src, 'nested'), { recursive: true });
+    await writeFile(join(src, 'claim-into-container.js'), 'export const unit = 1;\n');
+    await writeFile(join(src, 'nested', 'extra.js'), 'export const extra = 2;\n');
+    await __test__.copyPackFiles(src, dest);
+    assert.equal(await readFile(join(dest, 'claim-into-container.js'), 'utf8'), 'export const unit = 1;\n');
+    assert.equal(await readFile(join(dest, 'nested', 'extra.js'), 'utf8'), 'export const extra = 2;\n');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
