@@ -6,8 +6,9 @@ import { ChevronDown } from 'lucide-react';
 import { useT } from '@/i18n';
 import { studioHost } from '@/lib/host';
 import { Tooltip } from './Tooltip';
+import { KouboTemplatePreview } from './KouboTemplatePreview';
 
-type TemplateCard = { id: string; name: { 'zh-CN'?: string; en?: string } };
+type TemplateCard = { id: string; name: { 'zh-CN'?: string; en?: string }; preview?: string };
 
 export function KouboTemplateControl({ projectPath }: { projectPath?: string | null }) {
   const t = useT();
@@ -62,12 +63,13 @@ export function KouboTemplateControl({ projectPath }: { projectPath?: string | n
         </button>
       </Tooltip>
       {open ? (
-        <div role="listbox" className="absolute right-0 top-[30px] z-[80] min-w-[220px] overflow-hidden rounded-lg border border-[var(--border-strong)] bg-[var(--bg-raised)] py-1 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.4)]">
+        <div role="listbox" className="absolute right-0 top-[30px] z-[80] min-w-[260px] overflow-hidden rounded-lg border border-[var(--border-strong)] bg-[var(--bg-raised)] py-1 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.4)]">
           {templates.map((item) => (
             <button key={item.id} type="button" role="option" aria-selected={item.id === workflow.templateId}
-              className={`flex w-full px-3 py-1.5 text-left text-[12.5px] hover:bg-[var(--bg-hover)] ${item.id === workflow.templateId ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[12.5px] hover:bg-[var(--bg-hover)] ${item.id === workflow.templateId ? 'text-[var(--text)]' : 'text-[var(--text-muted)]'}`}
               onClick={() => void apply(item.id)}>
-              {item.name['zh-CN'] || item.name.en || item.id}
+              <KouboTemplatePreview src={item.preview} alt={t('koubo.templatePreview')} className="h-10 w-[72px] shrink-0 rounded border border-[var(--border)] bg-[var(--bg-field)] object-cover" />
+              <span className="min-w-0 flex-1 truncate">{item.name['zh-CN'] || item.name.en || item.id}</span>
             </button>
           ))}
         </div>

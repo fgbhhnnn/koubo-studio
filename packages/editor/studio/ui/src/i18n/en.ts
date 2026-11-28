@@ -4163,6 +4163,7 @@ export const en = {
     templateAuto: 'Assign automatically',
     templateAutoNote: 'Today this uses 口播讲解 (classic-performance)',
     templatePackNote: 'Talking-head template pack',
+    templatePreview: "Preview of this template's look",
     templateControl: 'Template',
     templateChangeFailed: 'Couldn’t change the template.',
     stepKey: 'ElevenLabs key',

@@ -4162,6 +4162,7 @@ export const zhCN: Words = {
     templateAuto: '自动分配',
     templateAutoNote: '目前会使用「口播讲解」（classic-performance）',
     templatePackNote: '口播风格模板',
+    templatePreview: '模板效果预览',
     templateControl: '模板',
     templateChangeFailed: '无法更换模板。',
     stepKey: 'ElevenLabs 密钥',

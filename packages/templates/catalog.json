@@ -12,6 +12,7 @@
       "description": "Animated captions and an illustration slot for a cleaned talking-head track. Optional classic-performance authored units are wrapped as window.film.frame(t) and stay off by default.",
       "dir": "classic-performance",
       "illustration": "illustration.html",
+      "preview": "preview.svg",
       "units": [
         "claim-into-container",
         "decompose-and-consolidate",

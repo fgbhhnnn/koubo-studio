@@ -4103,4 +4103,7 @@ export const ko: Words = {
       },
     },
   },
+  koubo: {
+    templatePreview: '이 템플릿의 미리보기',
+  },
 };

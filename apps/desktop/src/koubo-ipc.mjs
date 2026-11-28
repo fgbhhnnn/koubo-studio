@@ -4,8 +4,8 @@
  * talks to the page over IPC. Secrets stay in ~/.config/koubo and never go into
  * a project, a log line, or a progress event.
  */
-import { existsSync } from 'node:fs';
-import { basename, isAbsolute, join, parse as parsePath } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, extname, isAbsolute, join, parse as parsePath, relative } from 'node:path';
 import {
   ingestTalkingHead, reapplyTemplate, safeName, listTemplates,
   elevenLabsKeyStatus, writeElevenLabsKey, loadKouboEnv, sanitizePublicText,
@@ -52,6 +52,37 @@ export function publicProgress(event) {
   };
 }
 
+const PREVIEW_TYPES = {
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+};
+
+/**
+ * Turn a pack-relative preview file into a data URL the page can show.
+ * Absolute paths and anything that would leave the pack are dropped.
+ */
+export function publicPreview(template) {
+  const name = typeof template?.preview === 'string' ? template.preview.trim() : '';
+  const root = typeof template?.path === 'string' ? template.path : '';
+  if (!name || !root) return '';
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) return '';
+  const type = PREVIEW_TYPES[extname(name).toLowerCase()];
+  if (!type) return '';
+  const file = join(root, name);
+  const rel = relative(root, file);
+  if (!rel || rel.startsWith('..') || isAbsolute(rel)) return '';
+  try {
+    const buf = readFileSync(file);
+    if (!buf.length || buf.length > 512 * 1024) return '';
+    return `data:${type};base64,${buf.toString('base64')}`;
+  } catch {
+    return '';
+  }
+}
+
 export function publicTemplates(list = listTemplates()) {
   return list.map((t) => ({
     id: t.id,
@@ -59,6 +90,7 @@ export function publicTemplates(list = listTemplates()) {
     name: t.name || { 'zh-CN': t.id, en: t.id },
     description: t.description || '',
     units: t.units || [],
+    preview: publicPreview(t),
   }));
 }
 
