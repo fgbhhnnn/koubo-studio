@@ -1,8 +1,8 @@
 /**
  * OpenFilm scene page for one bound classic-performance unit.
- * The page exposes window.film.frame(t) on the clip's output clock; the
- * authored unit keeps running on its source choreography clock. Talk audio
- * stays on the film timeline, never in this page.
+ * The page exposes window.film.frame(t) on the clip's output clock; mapSource
+ * warps that onto the authored choreography clock (speech-aligned at assign
+ * time). Talk audio stays on the film timeline, never in this page.
  */
 import { PACK_PLAIN_TEXT_RUNTIME } from './bind-unit.mjs';
 

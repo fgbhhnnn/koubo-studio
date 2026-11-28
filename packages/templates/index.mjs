@@ -28,8 +28,16 @@ export { clipText, twoLines, clauseChunks, splitClauses, softBreaks } from './ty
 export { renderEvidencePlate, EVIDENCE_PLATE_KEYS } from './evidence-plate.mjs';
 export { interpolateFace, faceJs } from './face.mjs';
 export { parseUnitCues, remapClipCues, outputTimeAt } from './cues.mjs';
-
-
+export {
+  alignSlotCopy,
+  locatePhrase,
+  mapSpeechClock,
+  normalizePhrase,
+  resolveSpeechAnchors,
+  retimeAssignedClip,
+  revealSourceTime,
+} from './retime-unit.mjs';
+export { SLOT_REVEALS, slotRevealsFor, assertSlotReveals } from './slot-reveals.mjs';
 
 export function loadCatalog() {
   return JSON.parse(readFileSync(join(TEMPLATES_ROOT, 'catalog.json'), 'utf8'));
