@@ -11,18 +11,25 @@ import {
   elevenLabsKeyStatus, writeElevenLabsKey, loadKouboEnv, sanitizePublicText,
 } from 'koubo';
 import { videoDialogOptions } from './folder-dialog.mjs';
+import { kouboWorkflowWords } from './i18n/koubo-workflow.mjs';
 
 export const KOUBO_STEPS = ['transcribe', 'plan', 'cut', 'project', 'done'];
+
+function wordsOf(options) {
+  const language = typeof options?.language === 'function' ? options.language() : options?.language;
+  return kouboWorkflowWords(language);
+}
 
 /**
  * Validate what the page sent for a one-shot ingest. The API key, if the person
  * just pasted one, is returned separately and never copied onto the public request.
  * @param {unknown} raw
+ * @param {string} [language]
  */
-export function ingestRequestOf(raw) {
+export function ingestRequestOf(raw, language = 'en') {
   const o = raw && typeof raw === 'object' ? /** @type {Record<string, unknown>} */ (raw) : {};
   const video = typeof o.video === 'string' ? o.video : '';
-  if (!video || !isAbsolute(video)) throw new Error('请先选择口播视频。');
+  if (!video || !isAbsolute(video)) throw new Error(kouboWorkflowWords(language).noVideo);
   const title = typeof o.title === 'string' && o.title.trim() ? o.title.trim().slice(0, 120) : parsePath(video).name;
   const templateId = typeof o.templateId === 'string' && o.templateId.trim() ? o.templateId.trim() : null;
   const key = typeof o.apiKey === 'string' ? o.apiKey.trim() : '';
@@ -88,7 +95,7 @@ export function registerKouboIpc(ipcMain, options) {
   ipcMain.handle('desktop:koubo-pick-video', async (event, words) => {
     if (!trusted(event)) return null;
     const win = options.win?.() ?? null;
-    const { canceled, filePaths } = await options.dialog.showOpenDialog(win ?? undefined, videoDialogOptions(words));
+    const { canceled, filePaths } = await options.dialog.showOpenDialog(win ?? undefined, videoDialogOptions(words, typeof options.language === 'function' ? options.language() : options.language));
     return canceled || !filePaths[0] ? null : filePaths[0];
   });
 
@@ -114,7 +121,7 @@ export function registerKouboIpc(ipcMain, options) {
       const o = raw && typeof raw === 'object' ? raw : {};
       const folder = typeof o.path === 'string' ? o.path : '';
       const templateId = typeof o.templateId === 'string' ? o.templateId.trim() : '';
-      if (!folder || !isAbsolute(folder) || !templateId) throw new Error('请选择要更换的模板。');
+      if (!folder || !isAbsolute(folder) || !templateId) throw new Error(wordsOf(options).noTemplate);
       const reapply = options.reapply || reapplyTemplate;
       const result = await reapply({ outDir: folder, templateId, env: envOf() });
       return { ok: true, templateId: result.templateId, templateSource: result.templateSource, path: result.outDir };
@@ -130,16 +137,17 @@ export function registerKouboIpc(ipcMain, options) {
  * @param {Parameters<typeof registerKouboIpc>[1]} options
  */
 export async function runDesktopIngest(raw, options) {
-  const { request, apiKey, saveKey } = ingestRequestOf(raw);
-  if (!existsSync(request.video)) throw new Error('找不到所选视频。');
+  const words = wordsOf(options);
+  const { request, apiKey, saveKey } = ingestRequestOf(raw, typeof options.language === 'function' ? options.language() : options.language);
+  if (!existsSync(request.video)) throw new Error(words.videoMissing);
   if (apiKey && saveKey) writeElevenLabsKey(apiKey, { home: options.home });
   const env = loadKouboEnv({ env: options.env || process.env, home: options.home });
   if (apiKey) env.ELEVENLABS_API_KEY = apiKey;
 
   const locations = await options.studioApi('/api/locations').catch(() => null);
   const library = locations?.projects?.path;
-  if (!library || typeof library !== 'string') throw new Error('无法确定项目库目录。');
-  const outDir = uniqueProjectDir(library, request.title);
+  if (!library || typeof library !== 'string') throw new Error(words.noLibrary);
+  const outDir = uniqueProjectDir(library, request.title, words.noProjectDir);
 
   const sender = options.sender;
   const ingest = options.ingest || ingestTalkingHead;
@@ -160,7 +168,7 @@ export async function runDesktopIngest(raw, options) {
   const project = await options.openProject(result.outDir);
   const payload = publicProgress({
     step: 'done',
-    message: '口播工程已打开，可以在时间线或左侧对话里继续调整。',
+    message: words.done,
     projectId: project?.id,
   });
   sender?.send?.('desktop:koubo-progress', payload);
@@ -174,7 +182,7 @@ export async function runDesktopIngest(raw, options) {
   };
 }
 
-export function uniqueProjectDir(library, title) {
+export function uniqueProjectDir(library, title, noProjectDir = kouboWorkflowWords('en').noProjectDir) {
   const base = safeName(title);
   let dir = join(library, base);
   if (!existsSync(dir)) return dir;
@@ -182,7 +190,7 @@ export function uniqueProjectDir(library, title) {
     dir = join(library, `${base}-${n}`);
     if (!existsSync(dir)) return dir;
   }
-  throw new Error('无法创建新的工程目录。');
+  throw new Error(noProjectDir);
 }
 
 async function readWorkflow(folder) {

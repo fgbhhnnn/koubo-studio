@@ -972,6 +972,7 @@ async function start() {
     dialog,
     win: () => win,
     studioApi,
+    language: () => appLanguage(state.language, app.getPreferredSystemLanguages()),
     home: process.env.HOME || undefined,
     env: process.env,
     log,

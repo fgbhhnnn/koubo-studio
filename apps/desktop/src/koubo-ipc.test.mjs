@@ -8,7 +8,8 @@ import {
 } from './koubo-ipc.mjs';
 
 test('ingest request requires an absolute video path and strips the key from the public request', () => {
-  assert.throws(() => ingestRequestOf({ video: 'relative.mp4' }), /请先选择口播视频/);
+  assert.throws(() => ingestRequestOf({ video: 'relative.mp4' }), /Please choose a talking-head video first/);
+  assert.throws(() => ingestRequestOf({ video: 'relative.mp4' }, 'zh-CN'), /请先选择口播视频/);
   const { request, apiKey, saveKey } = ingestRequestOf({
     video: '/tmp/talk.mp4',
     title: '  本期口播  ',
