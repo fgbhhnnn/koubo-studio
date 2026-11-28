@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -38,8 +38,13 @@ function fakeArchive(platform = 'darwin') {
     mkdirSync(join(python, 'Lib', 'site-packages'), { recursive: true });
   } else {
     mkdirSync(join(python, 'bin'), { recursive: true });
-    writeFileSync(join(python, 'bin', 'python3'), '#!/bin/sh\nexit 1\n');
-    chmodSync(join(python, 'bin', 'python3'), 0o755);
+    /* Official python-build-standalone layout: python3 is a relative
+       symlink to python3.12. A copy that rewrites this to an absolute
+       temp path would fail existsSync after the extract dir is removed. */
+    writeFileSync(join(python, 'bin', 'python3.12'), '#!/bin/sh\nexit 1\n');
+    chmodSync(join(python, 'bin', 'python3.12'), 0o755);
+    symlinkSync('python3.12', join(python, 'bin', 'python3'));
+    symlinkSync('python3.12', join(python, 'bin', 'python'));
     mkdirSync(join(python, 'lib', 'python3.12', 'site-packages'), { recursive: true });
   }
   const archive = join(scratch(), 'python.tar.gz');
@@ -153,6 +158,10 @@ test('a cached archive that matches its checksum is not downloaded again', async
   });
   assert.equal(fetches, 0);
   assert.equal(pythonIn(dir, 'darwin'), true);
+  const exe = pythonExecutable(dir, 'darwin');
+  assert.equal(lstatSync(exe).isSymbolicLink(), true);
+  assert.equal(readlinkSync(exe), 'python3.12');
+  assert.equal(existsSync(exe), true);
 });
 
 test('cross-install uses wheels only and the Windows site-packages path', async () => {
