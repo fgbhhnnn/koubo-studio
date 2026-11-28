@@ -15,6 +15,17 @@ test('the Windows installer keeps the videos under node_modules', () => {
   assert.match(script, /nsis: \{[^}]*preCompressedFileExtensions: null/s);
 });
 
+test('the staged installer install uses packed file: tarballs, not pnpm workspace:*', () => {
+  const script = readFileSync(new URL('./release.mjs', import.meta.url), 'utf8');
+  assert.match(script, /packed = \{[\s\S]*'@koubo\/templates':/);
+  assert.match(script, /'@koubo\/editor': `file:\.\.\/\$\{pack\(protocol\)\}`/);
+  assert.match(script, /overrides: \{ \.\.\.lockedOverrides\(lockedTree, pkg\.dependencies\), \.\.\.packed \}/);
+  assert.match(script, /node_modules\/@koubo\/editor\/product\.json/);
+  assert.match(script, /asarUnpack: \['node_modules\/@koubo\/editor\/\*\*'/);
+  assert.doesNotMatch(script, /openfilm: `file:\.\.\/\$\{pack\(protocol\)\}`/);
+  assert.doesNotMatch(script, /node_modules\/openfilm\/product\.json/);
+});
+
 const powershell = process.env.OPENFILM_TEST_POWERSHELL || (process.platform === 'win32' ? 'powershell.exe' : null);
 test('installer preflight accepts an app-only tree and refuses to remove projects, personal assets or junctions', { skip: !powershell }, async (t) => {
   const scratch = await mkdtemp(join(tmpdir(), 'of-installer-protection-'));
