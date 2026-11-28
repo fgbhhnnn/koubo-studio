@@ -28,4 +28,6 @@ Koubo Studio 是一个独立产品：编辑器、口播管线、模板和桌面�
 - 默认关闭官方角标 / AduNext 水印。口播与 BGM 走时间线音轨，不在镜头页里播放。
 - **不**把 MotionGit 上下载的官方 `.motion` 包打进本仓库再分发。那些包带个人账号信封，仓库 MIT 不等于可以再分发或做 SaaS。
 
+桌面安装包另带一份便携 CPython 和 `requirements-runtime.txt` 里的运行时依赖，供日后接入阿杜 Python 流水线；冒烟入口是 `resources/runtime/adu/pipeline.py doctor`（Koubo 自己的导入检查，不是上游完整 doctor）。不把 MotionGit 上下载的官方 `.motion` 包打进安装包。说明见 `docs/python-runtime.md`。
+
 `adudir-open` 仅作 `.motion` 格式参考，本产品不依赖它的生成器（上游也未开源生成器）。

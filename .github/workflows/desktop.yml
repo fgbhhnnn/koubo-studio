@@ -71,7 +71,7 @@ jobs:
     needs: plan
     name: build (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 75
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -96,6 +96,11 @@ jobs:
             ~/.cache/electron-builder
           key: electron-${{ matrix.target }}-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: electron-${{ matrix.target }}-
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/koubo-python
+          key: koubo-python-${{ matrix.target }}-${{ hashFiles('apps/desktop/src/python-runtime.mjs', 'apps/desktop/runtime/adu/requirements-runtime.txt') }}
+          restore-keys: koubo-python-${{ matrix.target }}-
       - run: pnpm install --frozen-lockfile
 
       - name: Build unsigned Koubo Studio (${{ matrix.target }})
@@ -114,6 +119,9 @@ jobs:
             exit 1
           fi
           printf '%s\n' "${files[@]}"
+
+      - name: Check bundled Python runtime
+        run: node apps/desktop/scripts/check-staged-python.mjs "${{ matrix.target }}" "apps/desktop/.release/${{ matrix.out }}/runtime"
 
       - uses: actions/upload-artifact@v4
         with:

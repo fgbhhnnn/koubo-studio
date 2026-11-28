@@ -37,7 +37,8 @@ npm run release -- --unsigned --arch=x64
 npm run release -- --unsigned --platform=win --arch=x64
 ```
 
-Installers are named `Koubo-Studio-arm64.dmg`, `Koubo-Studio-x64.dmg`, and `Koubo-Studio-Setup-x64.exe`.
+Installers are named `Koubo-Studio-arm64.dmg`, `Koubo-Studio-x64.dmg`, and `Koubo-Studio-Setup-x64.exe`. They include a portable CPython and the 阿杜 runtime wheels under `resources/runtime/python` (see [`docs/python-runtime.md`](../../docs/python-runtime.md)). Running from source does not download Python; the editor still starts if none is on `PATH`.
+
 
 On an unsigned macOS build, allow the app in System Settings → Privacy & Security, or Control-click → Open. On Windows, SmartScreen may ask once: More info → Run anyway.
 

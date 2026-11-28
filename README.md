@@ -48,7 +48,7 @@ Windows 和 macOS 安装包由 GitHub Actions 自动打包，工作流是 [`.git
 - 推送到 `main`，或在 Actions 里手动运行 `desktop` 工作流，会打出安装包并上传为 [workflow artifacts](https://github.com/fgbhhnnn/koubo-studio/actions/workflows/desktop.yml)（保留 14 天）。
 - 打上 `v*` 版本标签（须与 `apps/desktop/package.json` 的 version 一致，例如 `v0.4.1`）还会挂到 [GitHub Release](https://github.com/fgbhhnnn/koubo-studio/releases)。
 
-产物名是 **Koubo Studio**（例如 `Koubo-Studio-arm64.dmg`、`Koubo-Studio-x64.dmg`、`Koubo-Studio-Setup-x64.exe`）。Linux 包不是必须产物，当前工作流不打。
+产物名是 **Koubo Studio**（例如 `Koubo-Studio-arm64.dmg`、`Koubo-Studio-x64.dmg`、`Koubo-Studio-Setup-x64.exe`）。安装包自带 ffmpeg、无头 Chromium，以及一份便携 Python 和阿杜运行时依赖，用户不必再装 Node 或 Python。Linux 包不是必须产物，当前工作流不打。便携 Python 的路径与体积见 [`docs/python-runtime.md`](docs/python-runtime.md)。
 
 当前没有 Apple / Windows 代码签名证书，因此这些是**未签名、未公证**的构建，缺少签名密钥时 CI 仍会成功出包：
 
@@ -143,7 +143,7 @@ packages/koubo/        用户命令 koubo：导入口播、方案、裁轨，以
 packages/editor/       Studio、时间线、film 格式、渲染引擎（包名 @koubo/editor）
 packages/templates/    一等口播模板（@koubo/templates）：字幕、插图槽、classic-performance
 packages/shared/       桌面端聊天与主进程的共用类型（@koubo/shared）
-apps/desktop/          桌面壳：Studio + 右侧对话（@koubo/desktop）
+apps/desktop/          桌面壳：Studio + 右侧对话，安装包含便携 Python（@koubo/desktop）
 skills/koubo-talking/  给对话助手看的口播说明（与编辑器核心技能 talking 同步）
 ```
 

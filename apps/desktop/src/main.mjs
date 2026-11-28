@@ -40,6 +40,7 @@ import { installOpenfilmCommand } from './openfilm-command.mjs';
 import { startUpdates } from './updates.mjs';
 import { stepAside } from './update-launch.mjs';
 import { ensureFfmpeg, ffmpegDir, ffmpegDownloadable, ffmpegIn, ffmpegOnPath } from './ffmpeg-runtime.mjs';
+import { pythonChildEnv, resolvePython } from './python-runtime.mjs';
 import { PATH_SEP } from './environment.mjs';
 import { firstWindowsApps } from './windows-apps.mjs';
 import { createTabs, projectGone } from './tabs.mjs';
@@ -706,9 +707,11 @@ async function start() {
 
 
   /* what the installer brings (scripts/release.mjs): ffmpeg and ffprobe, first on the PATH of Studio and of the
-     agents' `openfilm` command, and the headless browser Studio and `openfilm` draw pages in. A build without them
-     (from source): no ffmpeg on this computer, the app's own goes first on the PATH and is downloaded once the window
-     is up (they find it the moment it lands); the browser, Studio downloads the first time (studio-process.mjs) */
+     agents' `openfilm` command, the headless browser Studio and `openfilm` draw pages in, and a portable CPython
+     for the 阿杜 pipeline (`KOUBO_PYTHON`, `runtime/python`). A build without them (from source): no ffmpeg on this
+     computer, the app's own goes first on the PATH and is downloaded once the window is up (they find it the moment
+     it lands); the browser, Studio downloads the first time (studio-process.mjs). Python is not downloaded at
+     startup: from source the JS talking-head path works without it, and a missing interpreter must not stop the editor. */
   const runtime = app.isPackaged ? join(process.resourcesPath, 'runtime') : null;
   const ownFfmpeg = runtime && ffmpegIn(join(runtime, 'ffmpeg')) ? join(runtime, 'ffmpeg') : null;
   const needFfmpeg = !ownFfmpeg && !ffmpegOnPath(env.PATH) && ffmpegDownloadable();
@@ -716,6 +719,13 @@ async function start() {
   if (ffmpegHere) env.PATH = [ffmpegHere, env.PATH].join(PATH_SEP);
   const browsers = runtime && existsSync(join(runtime, 'ms-playwright')) ? { PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright') } : {};
   Object.assign(env, browsers);
+  let python = null;
+  try {
+    python = resolvePython({ runtimeDir: runtime, env: process.env, allowSystem: !app.isPackaged });
+  } catch (error) {
+    log(`Python runtime was not resolved: ${error.message}\n`);
+  }
+  if (python) Object.assign(env, pythonChildEnv(env, python, { pathSep: PATH_SEP }));
 
   const display = screen.getPrimaryDisplay().workArea;
   const width = Math.min(1480, display.width);
@@ -878,6 +888,8 @@ async function start() {
     binDir: installOpenfilmCommand(DATA, { ffmpeg: ffmpegHere, env: {
       ...browsers,
       ...(env.OPENFILM_INSTALL_DIR ? { OPENFILM_INSTALL_DIR: env.OPENFILM_INSTALL_DIR } : {}),
+      ...(env.KOUBO_PYTHON ? { KOUBO_PYTHON: env.KOUBO_PYTHON, PYTHONNOUSERSITE: '1' } : {}),
+      ...(env.KOUBO_ADU_PIPELINE ? { KOUBO_ADU_PIPELINE: env.KOUBO_ADU_PIPELINE } : {}),
     } }),
     fallbackDir: ffmpegHere,
     env: {
@@ -886,6 +898,8 @@ async function start() {
       ...(env.OPENFILM_API_URL ? { OPENFILM_API_URL: env.OPENFILM_API_URL } : {}),
       ...(env.OPENFILM_LIBRARY ? { OPENFILM_LIBRARY: env.OPENFILM_LIBRARY } : {}),
       ...(env.OPENFILM_SHARED_HOME ? { OPENFILM_SHARED_HOME: env.OPENFILM_SHARED_HOME } : {}),
+      ...(env.KOUBO_PYTHON ? { KOUBO_PYTHON: env.KOUBO_PYTHON, PYTHONNOUSERSITE: '1' } : {}),
+      ...(env.KOUBO_ADU_PIPELINE ? { KOUBO_ADU_PIPELINE: env.KOUBO_ADU_PIPELINE } : {}),
     },
     harness: async (id) => roster?.harness(id) ?? null,
     /* Developer mode: an agent whose own record lacks what its model got logs it here (agent-logs.mjs) */
