@@ -25,7 +25,8 @@ test('status and last4 never include the full key', async () => {
     assert.equal(last4('sk_test_fixture_not_real_ABCDEF1234'), '1234');
     const file = elevenLabsKeyFile(home);
     const info = await stat(file);
-    assert.equal(info.mode & 0o777, 0o600);
+    // Windows reports a POSIX mode of 0o666; chmod 0600 is a Unix permission and does not stick there.
+    if (process.platform !== 'win32') assert.equal(info.mode & 0o777, 0o600);
     const disk = await readFile(file, 'utf8');
     assert.match(disk, /^ELEVENLABS_API_KEY=/);
     const again = elevenLabsKeyStatus({ home, env: {} });
