@@ -13,6 +13,8 @@ export const KOUBO_WORKFLOW_WORDS = {
     noVideo: 'Please choose a talking-head video first.',
     videoMissing: 'The chosen video could not be found.',
     noTemplate: 'Please choose the template to switch to.',
+    networkFailed: 'The request could not be completed (network error). Check the connection and try again.',
+    openProjectFailed: 'The project was created, but opening it in the editor failed. Open it from the project list.',
   },
   'zh-CN': {
     pickVideo: '选择口播视频',
@@ -23,6 +25,8 @@ export const KOUBO_WORKFLOW_WORDS = {
     noVideo: '请先选择口播视频。',
     videoMissing: '找不到所选视频。',
     noTemplate: '请选择要更换的模板。',
+    networkFailed: '网络请求失败，请检查网络连接后重试。',
+    openProjectFailed: '工程已创建，但打开编辑器失败。请从项目列表中打开。',
   },
   ja: {
     pickVideo: 'トーク動画を選択',
@@ -33,6 +37,8 @@ export const KOUBO_WORKFLOW_WORDS = {
     noVideo: '先にトーク動画を選んでください。',
     videoMissing: '選んだ動画が見つかりません。',
     noTemplate: '切り替えるテンプレートを選んでください。',
+    networkFailed: 'ネットワークエラーのためリクエストを完了できません。接続を確認して再試行してください。',
+    openProjectFailed: 'プロジェクトは作成されましたが、エディターで開けませんでした。プロジェクト一覧から開いてください。',
   },
   ko: {
     pickVideo: '토킹헤드 영상 선택',
@@ -43,6 +49,8 @@ export const KOUBO_WORKFLOW_WORDS = {
     noVideo: '먼저 토킹헤드 영상을 선택하세요.',
     videoMissing: '선택한 영상을 찾을 수 없습니다.',
     noTemplate: '바꿀 템플릿을 선택하세요.',
+    networkFailed: '네트워크 오류로 요청을 완료할 수 없습니다. 연결을 확인한 뒤 다시 시도하세요.',
+    openProjectFailed: '프로젝트는 만들어졌지만 편집기에서 열지 못했습니다. 프로젝트 목록에서 여세요.',
   },
   es: {
     pickVideo: 'Elegir un vídeo hablado',
@@ -53,6 +61,8 @@ export const KOUBO_WORKFLOW_WORDS = {
     noVideo: 'Elige primero un vídeo hablado.',
     videoMissing: 'No se encontró el vídeo elegido.',
     noTemplate: 'Elige la plantilla a la que quieres cambiar.',
+    networkFailed: 'No se pudo completar la solicitud (error de red). Comprueba la conexión e inténtalo de nuevo.',
+    openProjectFailed: 'El proyecto se creó, pero no se pudo abrir en el editor. Ábrelo desde la lista de proyectos.',
   },
 };
 

@@ -46,11 +46,19 @@ async function postTranscript(filePath, apiKey, model, opts) {
   if (opts.diarize) body.set('diarize', 'true');
 
   const fetchImpl = opts.fetchImpl || globalThis.fetch;
-  const res = await fetchImpl(ELEVENLABS_STT_URL, {
-    method: 'POST',
-    headers: { 'xi-api-key': apiKey },
-    body,
-  });
+  let res;
+  try {
+    res = await fetchImpl(ELEVENLABS_STT_URL, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey },
+      body,
+    });
+  } catch (err) {
+    const wrapped = new Error(`${explainNetworkError(err, 'ElevenLabs 转写请求失败')}。请检查网络连接后重试。`);
+    wrapped.cause = err;
+    wrapped.code = 'ELEVENLABS_NETWORK';
+    throw wrapped;
+  }
 
   if (!res.ok) {
     let detail = '';
@@ -67,6 +75,35 @@ async function postTranscript(filePath, apiKey, model, opts) {
   }
 
   return res.json();
+}
+
+/**
+ * Extra detail from a failed fetch (a system code, a cause), never the empty
+ * "fetch failed" on its own. Empty when there is nothing more to say.
+ * @param {unknown} err
+ */
+export function networkErrorDetail(err) {
+  const cause = err && typeof err === 'object' ? /** @type {any} */ (err).cause : null;
+  const code = String(cause?.code || (err && typeof err === 'object' ? /** @type {any} */ (err).code : '') || '');
+  const message = String((err && typeof err === 'object' && /** @type {any} */ (err).message) || err || '').trim();
+  const causeMessage = String(cause?.message || '').trim();
+  const parts = [code, causeMessage, message].filter((s, i, a) => s && a.indexOf(s) === i && !/^fetch failed$/i.test(s));
+  return parts.join(': ');
+}
+
+/**
+ * A failed fetch as a reason a person can act on, never the empty "fetch failed"
+ * on its own. `what` names the request (already in the product language).
+ * @param {unknown} err
+ * @param {string} [what]
+ */
+export function explainNetworkError(err, what = 'The network request failed') {
+  const detail = networkErrorDetail(err);
+  const message = String((err && typeof err === 'object' && /** @type {any} */ (err).message) || err || '').trim();
+  const failed = /fetch failed|Failed to fetch|network|ECONN|ENOTFOUND|ETIMEDOUT|EAI_AGAIN|UND_ERR|CERT|unable to verify/i.test(`${networkErrorDetail(err)} ${message}`)
+    || !message || /^fetch failed$/i.test(message);
+  if (failed) return `${what}${detail ? ` (${detail})` : ''}`;
+  return message;
 }
 
 /** Strip anything that looks like a key or token from an error payload. */

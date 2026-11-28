@@ -376,6 +376,27 @@ export function injectFirst(html, tag) {
  * environment. Each browser is held to a share of the machine's memory (browser-memory.mjs): a page whose drawing
  * takes more ends it.
  */
+/**
+ * Whether a Playwright launch failed because the process could not be started
+ * (a missing or unspawnable bundled headless shell, often `spawn UNKNOWN` on
+ * Windows), rather than a later GPU or page error.
+ * @param {unknown} err
+ */
+export function isBrowserSpawnFailure(err) {
+  const message = String(err && typeof err === 'object' && /** @type {any} */ (err).message || err || '');
+  return /spawn (unknown|ENOENT|EACCES)|Executable doesn't exist|browser process .+ executable/i.test(message);
+}
+
+/** A spawn failure with the bundled shell's path, so a pack or extract problem is named. */
+export function explainBrowserSpawnFailure(err) {
+  const message = String(err && typeof err === 'object' && /** @type {any} */ (err).message || err || '');
+  let exe = '';
+  try { exe = chromium.executablePath(); } catch { /* Playwright has no browsers here */ }
+  const browsers = process.env.PLAYWRIGHT_BROWSERS_PATH || '';
+  const where = [exe && `executable ${exe}`, browsers && `PLAYWRIGHT_BROWSERS_PATH ${browsers}`].filter(Boolean).join(', ');
+  return `Could not launch the bundled headless browser${where ? ` (${where})` : ''}: ${message}`;
+}
+
 export async function launch({ headed = false, channel = headed ? 'chromium' : null, args: extra = [], env } = {}) {
   /* CanvasDrawElement: HTML-in-Canvas (drawElementImage, texElementImage2D), so a page can draw its own DOM into 2D or WebGL.
      No Skia Graphite: with it, a 2D canvas drawing hundreds of strokes each through `ctx.filter = 'blur(…)'` had the
@@ -388,11 +409,26 @@ export async function launch({ headed = false, channel = headed ? 'chromium' : n
     guard(browser, marker);
     return browser;
   };
-  const browser = extra.some((a) => a.startsWith('--use-angle')) ? await open([])
-    : process.platform === 'darwin' ? await open(['--use-angle=metal'])
-    : process.platform === 'win32' ? await onWindows(open)
-    : process.platform === 'linux' ? await onLinux(open)
-    : await open([]);
+  /** @param {() => Promise<import('playwright-core').Browser>} run */
+  const started = async (run) => {
+    try {
+      return await run();
+    } catch (err) {
+      if (!isBrowserSpawnFailure(err)) throw err;
+      /* Windows: --use-angle=vulkan can fail to spawn the bundled headless shell; try Direct3D, then no ANGLE. */
+      if (process.platform === 'win32' && !extra.some((a) => a.startsWith('--use-angle'))) {
+        for (const angle of [['--use-angle=d3d11'], []]) {
+          try { return await open(angle); } catch (retry) { if (!isBrowserSpawnFailure(retry)) throw retry; }
+        }
+      }
+      throw new Error(explainBrowserSpawnFailure(err));
+    }
+  };
+  const browser = await started(() => (extra.some((a) => a.startsWith('--use-angle')) ? open([])
+    : process.platform === 'darwin' ? open(['--use-angle=metal'])
+    : process.platform === 'win32' ? onWindows(open)
+    : process.platform === 'linux' ? onLinux(open)
+    : open([])));
   LIVE.add(browser);
   browser.on('disconnected', () => LIVE.delete(browser));
   return browser;

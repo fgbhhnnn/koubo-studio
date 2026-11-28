@@ -757,3 +757,27 @@ test('a copy whose id needs escaping is found by the selector a paste says (to b
     await stage.close();
   }
 });
+
+test('caption word tokens are one text layer for the current line, not a row per character', { timeout: 60_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'of-stage-caption-words-'));
+  const line = '于中学才是普通人追上这个时代最快的方法。';
+  const words = [...line].map((ch) => `<span class="word">${ch}</span>`).join('');
+  writeFileSync(join(dir, 'captions.html'), `<!doctype html><body style="margin:0">
+<div id="stage" style="position:relative;width:320px;height:180px">
+  <div class="bar" id="bar" style="position:absolute;left:10px;right:10px;bottom:10px;padding:8px;background:rgba(0,0,0,.6);color:#fff;font:16px sans-serif">${words}</div>
+</div>
+<script>window.film={duration:2,frame(){}}</script></body>`);
+  writeFileSync(join(dir, 'film.html'), filmHtml({ stage: { w: 320, h: 180 }, tracks: [{ clips: [{ id: 'captions', src: 'captions.html' }] }] }));
+  const stage = await stageOf(dir);
+  try {
+    const labels = (rows) => rows.flatMap((r) => [r.label, ...labels(r.children)]);
+    const kinds = (rows) => rows.flatMap((r) => [r.kind, ...kinds(r.children)]);
+    const tree = await stage.ask('tree');
+    const shown = labels(tree[0].layers);
+    assert.ok(shown.some((l) => l.includes('于中学才是普通人追上这个时代最快的方法') || l.startsWith('于中学才是普通人')), `line label missing in ${JSON.stringify(shown)}`);
+    assert.ok(!shown.includes('法') && !shown.includes('于') && !shown.includes('追'), `tokens listed on their own: ${JSON.stringify(shown)}`);
+    assert.ok(kinds(tree[0].layers).includes('text'));
+  } finally {
+    await stage.close();
+  }
+});

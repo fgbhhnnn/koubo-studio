@@ -143,6 +143,9 @@ else console.warn(`No ffmpeg build for ${platform}-${arch}: this app downloads n
 run(process.execPath, [join(stage, 'node_modules/playwright-core/cli.js'), 'install', 'chromium-headless-shell'], {
   env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: join(runtime, 'ms-playwright'), PLAYWRIGHT_HOST_PLATFORM_OVERRIDE: win ? 'win64' : arch === 'arm64' ? 'mac15-arm64' : 'mac15' },
 });
+/* refuse to pack a tree that Windows cannot spawn (missing exe or DLLs: spawn UNKNOWN) */
+const { assertPlaywrightRuntime } = await import(pathToFileURL(join(desktop, 'src/playwright-runtime.mjs')).href);
+assertPlaywrightRuntime(join(runtime, 'ms-playwright'), { platform: win ? 'win32' : 'darwin' });
 if (pythonDownloadable(platform, arch)) {
   await stagePythonRuntime(runtime, { platform, arch, aduDir: join(desktop, 'runtime/adu') });
 } else {

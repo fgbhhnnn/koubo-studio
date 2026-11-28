@@ -9,6 +9,7 @@ import { basename, extname, isAbsolute, join, parse as parsePath, relative } fro
 import {
   ingestTalkingHead, reapplyTemplate, safeName, listTemplates,
   elevenLabsKeyStatus, writeElevenLabsKey, loadKouboEnv, sanitizePublicText,
+  explainNetworkError,
 } from 'koubo';
 import { videoDialogOptions } from './folder-dialog.mjs';
 import { kouboWorkflowWords } from './i18n/koubo-workflow.mjs';
@@ -136,7 +137,7 @@ export function registerKouboIpc(ipcMain, options) {
     try {
       return await runDesktopIngest(raw, { ...options, sender: event.sender });
     } catch (err) {
-      const error = sanitizePublicText(err?.message || String(err));
+      const error = sanitizePublicText(publicIngestError(err, wordsOf(options)));
       options.log?.(`koubo ingest failed: ${error}\n`);
       return { ok: false, error };
     }
@@ -197,7 +198,7 @@ export async function runDesktopIngest(raw, options) {
     },
   });
 
-  const project = await options.openProject(result.outDir);
+  const project = await openProjectRetry(options.openProject, result.outDir, options.log);
   const payload = publicProgress({
     step: 'done',
     message: words.done,
@@ -212,6 +213,43 @@ export async function runDesktopIngest(raw, options) {
     templateSource: result.templateSource,
     needsReview: Boolean(result.needsReview),
   };
+}
+
+/**
+ * Open the ingested folder in Studio, a few times: a long ingest can leave the
+ * local API briefly unready, and a raw "fetch failed" must not hide a project
+ * that is already on disk.
+ * @param {(path: string) => Promise<{ id: string, path?: string, name?: string } | null>} openProject
+ * @param {string} folder
+ * @param {(line: string) => void} [log]
+ */
+export async function openProjectRetry(openProject, folder, log, tries = 3) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const project = await openProject(folder);
+      if (project?.id) return project;
+      last = new Error('openProject returned no id');
+    } catch (err) {
+      last = err;
+    }
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, 250 * (i + 1)));
+  }
+  log?.(`koubo openProject failed after ingest: ${last?.message || last}\n`);
+  return null;
+}
+
+/** An ingest error as shown in the wizard: a network failure says so, never only "fetch failed". */
+export function publicIngestError(err, words) {
+  const message = String(err?.message || err || '').trim();
+  if (!message || /^fetch failed$/i.test(message) || /Failed to fetch/i.test(message)) {
+    const explained = explainNetworkError(err, words.networkFailed);
+    return explained && explained !== words.networkFailed ? explained : words.networkFailed;
+  }
+  if (/^fetch failed/i.test(message) || /Failed to fetch/i.test(message)) {
+    return explainNetworkError(err, words.networkFailed);
+  }
+  return message;
 }
 
 export function uniqueProjectDir(library, title, noProjectDir = kouboWorkflowWords('en').noProjectDir) {

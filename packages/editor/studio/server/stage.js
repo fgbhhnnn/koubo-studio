@@ -1396,6 +1396,29 @@
    * own (that row stands for it). `branch` is the handle of the child of the row's parent row that holds it: rows are
    * restacked by it. `off`: not drawn at this moment (faded out, hidden, no size).
    */
+  /**
+   * A typographic token of a caption line (Koubo STT / karaoke `span.word`): not a
+   * layer of its own. Chinese speech-to-text is often one character per word, so
+   * listing each would fill the panel with one-letter rows. The line box is the
+   * text layer, labeled with the line as painted (the same grouping as
+   * renderCaptionsPage / frame(t)).
+   */
+  const isWordToken = (el) => el.classList?.contains('word') && el.children.length === 0;
+  const lineWords = (el) => [...el.children].filter(isWordToken);
+  const isCaptionLine = (el) => {
+    const words = lineWords(el);
+    return words.length > 0 && [...el.children].every((ch) => isWordToken(ch) || SKIP.has(ch.localName.toLowerCase()));
+  };
+  const lineLabel = (el) => {
+    const parts = lineWords(el).map((ch) => (ch.textContent ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    let text = '';
+    for (const part of parts) {
+      if (text && /[A-Za-z0-9]$/.test(text) && /^[A-Za-z0-9]/.test(part)) text += ' ';
+      text += part;
+    }
+    if (!text) return '';
+    return text.length <= 32 ? text : `${text.slice(0, 32)}…`;
+  };
   const rowsOf = (c) => {
     let count = 0;
     const doc = c.win.document;
@@ -1406,7 +1429,10 @@
         if (count >= ROWS) break;
         const tag = ch.localName.toLowerCase();
         if (SKIP.has(tag) || ch.hasAttribute(EDITOR_ATTR) || kept.get(ch)?.deleted) continue;
-        const kind = kindOf(ch) ?? (isGroup(ch) ? 'box' : null);
+        /* tokens stay in the page for highlighting; the line is the row */
+        if (isWordToken(ch)) continue;
+        const captionLine = isCaptionLine(ch);
+        const kind = captionLine ? 'text' : (kindOf(ch) ?? (isGroup(ch) ? 'box' : null));
         const leaf = tag === 'svg' || kind === 'text' || kind === 'image';
         const inner = leaf ? [] : collect(ch);
         if (!kind && !leaf) {
@@ -1417,7 +1443,7 @@
         const own = kept.get(ch) ?? {};
         const r = ch.getBoundingClientRect();
         const where = locOf(ch);
-        const named = kind ? labelOf(ch, kind) : tag;
+        const named = captionLine && lineLabel(ch) ? lineLabel(ch) : (kind ? labelOf(ch, kind) : tag);
         out.push({
           handle: handleOf(ch),
           branch: handleOf(ch),

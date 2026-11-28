@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HELD_DRAWN_MAX_MS, ZOOMED_AREA_MAX, ZOOMED_SIDE_MAX, heldNext, left, pageScaleFor, reloaded, shownAfter, shownOf, updateKeys, zoomedPageScale } from './preview-frames.ts';
+import { FIRST_READY_MS, FIRST_READY_TRIES, firstReadyNext, HELD_DRAWN_MAX_MS, ZOOMED_AREA_MAX, ZOOMED_SIDE_MAX, heldNext, left, pageScaleFor, reloaded, shownAfter, shownOf, updateKeys, zoomedPageScale } from './preview-frames.ts';
 
 test('a load behind the picture: the frame shown stays until the new one has drawn, and only then goes', () => {
   const first = [{ key: 1, ready: true }];
@@ -83,4 +83,13 @@ test('a load held behind the picture waits for what is under way and for the lat
   assert.equal(heldNext({ ...ready, zoomPending: true }), 'wait', 'a zoom not drawn for yet');
   assert.equal(heldNext({ ...ready, needed: 2.75 }), 'load', 'made for a zoom since left: not shown, then loaded again at once');
   assert.equal(heldNext({ ...ready, there: false }), 'drop');
+});
+
+
+test('a stuck first frame remounts only the film iframe, then gives up, never looping the shell', () => {
+  assert.equal(firstReadyNext({ ready: false, tries: 0, waited: FIRST_READY_MS - 1 }), 'wait');
+  assert.equal(firstReadyNext({ ready: true, tries: 0, waited: FIRST_READY_MS + 1 }), 'wait');
+  assert.equal(firstReadyNext({ ready: false, tries: 0, waited: FIRST_READY_MS }), 'reload');
+  assert.equal(firstReadyNext({ ready: false, tries: FIRST_READY_TRIES - 1, waited: FIRST_READY_MS }), 'reload');
+  assert.equal(firstReadyNext({ ready: false, tries: FIRST_READY_TRIES, waited: FIRST_READY_MS }), 'give-up');
 });

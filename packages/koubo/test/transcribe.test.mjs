@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { sanitizeErrorBody, normalizeTranscript } from '../src/transcribe.mjs';
+import { sanitizeErrorBody, normalizeTranscript, explainNetworkError, networkErrorDetail } from '../src/transcribe.mjs';
 import { refinePlanWithLlm } from '../src/llm.mjs';
 
 test('sanitizeErrorBody never echoes an API key', () => {
@@ -36,4 +36,19 @@ test('LLM slot can apply a custom refiner', async () => {
   });
   assert.equal(out.llm.used, true);
   assert.equal(out.keeps[0].end, 2);
+});
+
+
+test('a failed fetch is not shown as the empty "fetch failed" on its own', () => {
+  const err = new TypeError('fetch failed');
+  err.cause = { code: 'ECONNRESET', message: 'read ECONNRESET' };
+  assert.equal(networkErrorDetail(err), 'ECONNRESET: read ECONNRESET');
+  const said = explainNetworkError(err, 'ElevenLabs 转写请求失败');
+  assert.match(said, /ElevenLabs/);
+  assert.match(said, /ECONNRESET/);
+  assert.doesNotMatch(said, /^fetch failed$/);
+});
+
+test('explainNetworkError keeps a specific non-network message', () => {
+  assert.equal(explainNetworkError(new Error('file is empty')), 'file is empty');
 });

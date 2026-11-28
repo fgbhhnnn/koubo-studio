@@ -469,12 +469,19 @@ async function tellTabsWorking({ working = agentFolders.working, asking = agentF
 }
 
 async function studioApi(path, method = 'GET', body = undefined, signal = undefined) {
-  const res = await fetch(`${studio.origin}${path}`, {
-    method,
-    signal,
-    headers: { 'x-studio-key': studio.key, ...(body ? { 'content-type': 'application/json' } : {}) },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
+  let res;
+  try {
+    res = await fetch(`${studio.origin}${path}`, {
+      method,
+      signal,
+      headers: { 'x-studio-key': studio.key, ...(body ? { 'content-type': 'application/json' } : {}) },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch (err) {
+    const cause = /** @type {any} */ (err)?.cause;
+    const extra = [cause?.code, err?.message].filter((s) => s && !/^fetch failed$/i.test(String(s))).join(': ');
+    throw new Error(extra ? `Studio could not be reached (${extra})` : 'Studio could not be reached');
+  }
   if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? `Studio answered ${res.status}`);
   return res.json();
 }
