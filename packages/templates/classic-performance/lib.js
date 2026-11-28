@@ -129,7 +129,11 @@ const talkSrc = t => {
   const m = TALKMAP[i]; return `talk/${TALKF[m[0]]}/f_${String(m[1]).padStart(5, '0')}.jpg`;
 };
 /* frame-sequence helper: dir, frame count, fps, time, start time, loop */
-const seqSrc = (dir, i, n) => `sc/${dir}/f_${String(clamp(i, 1, n)).padStart(4, '0')}.jpg`;
+const seqSrc = (dir, i, n) => {
+  const media = (typeof CONFIG !== 'undefined' && CONFIG.seqMedia) || {};
+  if (typeof media[dir] === 'string' && media[dir]) return media[dir];
+  return `sc/${dir}/f_${String(clamp(i, 1, n)).padStart(4, '0')}.jpg`;
+};
 function seqAt(dir, n, fps, t, t0, loop = true) { let i = Math.floor((t - t0) * fps + 1e-6); i = loop ? ((i % n) + n) % n : clamp(i, 0, n - 1); return seqSrc(dir, i + 1, n); }
 
 /* ================= shared building blocks (from EP02/EP04) ================= */

@@ -4,7 +4,16 @@ import { dirname, join, basename, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fillIllustrationSlot, pickIllustrationSlots, createCompatImageGenerator } from './images.mjs';
 import { formatPlanSummary } from './plan.mjs';
-import { TEMPLATES_ROOT, CLASSIC_PACK_DIR, ILLUSTRATION_HTML } from '@koubo/templates';
+import {
+  TEMPLATES_ROOT,
+  CLASSIC_PACK_DIR,
+  ILLUSTRATION_HTML,
+  assignUnits,
+  bindAuthoredBlock,
+  loadUnitsManifest,
+  sceneById,
+  renderUnitPage,
+} from '@koubo/templates';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 /** @deprecated use TEMPLATES_ROOT from @koubo/templates */
@@ -93,8 +102,15 @@ export async function buildProject(opts) {
   }
 
   const includeClassic = opts.includeClassicUnit ?? shouldIncludeClassic(opts.templateId);
+  let units = [];
   if (includeClassic && existsSync(join(CLASSIC_PACK_DIR, 'lib.js'))) {
-    await embedClassicUnit(outDir, { duration });
+    units = await embedClassicUnits(outDir, {
+      duration,
+      plan,
+      templateId: opts.templateId || plan?.template?.id,
+      talkRel,
+      illustrations: filled,
+    });
   }
 
   const film = renderFilmHtml({
@@ -104,14 +120,15 @@ export async function buildProject(opts) {
     duration,
     talkRel,
     illustrations: filled,
-    hasClassic: includeClassic && existsSync(join(outDir, 'scenes', 'classic-unit.html')),
+    units,
   });
   await writeFile(join(outDir, 'film.html'), film, 'utf8');
 
   await writeFile(join(dataDir, 'plan.json'), JSON.stringify(plan, null, 2) + '\n', 'utf8');
   await writeFile(join(dataDir, 'illustrations.json'), JSON.stringify(filled, null, 2) + '\n', 'utf8');
-  await writeFile(join(dataDir, 'README.md'), renderProjectNotes({ title, plan, filled }), 'utf8');
-  const workflow = workflowRecord(opts, plan);
+  await writeFile(join(dataDir, 'units.json'), JSON.stringify(units, null, 2) + '\n', 'utf8');
+  await writeFile(join(dataDir, 'README.md'), renderProjectNotes({ title, plan, filled, units }), 'utf8');
+  const workflow = workflowRecord(opts, plan, units);
   await writeFile(join(dataDir, 'workflow.json'), JSON.stringify(workflow, null, 2) + '\n', 'utf8');
 
   const skillSrc = join(HERE, '..', 'skills', 'koubo-talking', 'SKILL.md');
@@ -123,6 +140,7 @@ export async function buildProject(opts) {
     film: join(outDir, 'film.html'),
     duration,
     illustrations: filled,
+    units,
     templateId: workflow.templateId,
     templateSource: workflow.templateSource,
   };
@@ -136,7 +154,7 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-function renderFilmHtml({ title, width, height, duration, talkRel, illustrations, hasClassic }) {
+function renderFilmHtml({ title, width, height, duration, talkRel, illustrations, units = [] }) {
   const d = duration.toFixed(4);
   const illusClips = illustrations.map((slot) => {
     const left = 1240;
@@ -146,8 +164,14 @@ function renderFilmHtml({ title, width, height, duration, talkRel, illustrations
     return `  <iframe id="${escapeHtml(slot.id)}" src="scenes/${escapeHtml(slot.id)}.html#t=0,${slot.duration.toFixed(4)}" at="${slot.at.toFixed(4)}" size="960x600" style="left: ${left}px; top: ${top}px; width: ${w}px; height: ${h}px"></iframe>`;
   }).join('\n');
 
-  const classicSection = hasClassic
-    ? `\n<section hidden>\n  <!-- Optional classic unit (adapted authored-unit, official badge off). Hidden by default; enable in Studio if you want that style as a B-roll. -->\n  <iframe id="classic-unit" src="scenes/classic-unit.html#t=0,15.466" at="0" disabled style="left: 80px; top: 80px; width: 1120px; height: 630px"></iframe>\n</section>`
+  const unitClips = (units || []).map((clip) => {
+    const dur = Number(clip.duration).toFixed(4);
+    const at = Number(clip.at).toFixed(4);
+    return `  <iframe id="${escapeHtml(clip.id)}" src="scenes/${escapeHtml(clip.id)}.html#t=0,${dur}" at="${at}" size="1920x1080" style="left: 0px; top: 0px; width: ${width}px; height: ${height}px"></iframe>`;
+  }).join('\n');
+
+  const unitSection = unitClips
+    ? `\n<section>\n${unitClips}\n</section>`
     : '';
   const illusSection = illustrations.length
     ? `\n<section>\n${illusClips}\n</section>`
@@ -163,7 +187,7 @@ function renderFilmHtml({ title, width, height, duration, talkRel, illustrations
 <body>
 <section>
   <iframe id="captions" src="scenes/captions.html#t=0,${d}" at="0" size="${width}x320" style="left: 0px; top: 760px; width: ${width}px; height: 320px"></iframe>
-</section>${illusSection}${classicSection}
+</section>${illusSection}${unitSection}
 <section>
   <video id="talk" src="${escapeHtml(talkRel)}#t=0,${d}" at="0" style="object-fit: cover"></video>
 </section>
@@ -449,7 +473,7 @@ async function copyPackFiles(src, dest) {
   }
 }
 
-async function embedClassicUnit(outDir, { duration }) {
+async function embedClassicRuntime(outDir) {
   const dest = join(outDir, 'scenes', 'classic-runtime');
   await mkdir(dest, { recursive: true });
   for (const name of ['lib.js', 'motion.js', 'config.js', 'style.css', 'main.js', 'LICENSE', 'README.md']) {
@@ -457,51 +481,90 @@ async function embedClassicUnit(outDir, { duration }) {
     if (existsSync(src)) await copyFile(src, join(dest, name));
   }
   await copyPackFiles(join(CLASSIC_PACK_DIR, 'units'), join(dest, 'units'));
-  const html = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=1920, height=1080">
-<title>classic-unit</title>
-<link rel="stylesheet" href="classic-runtime/style.css">
-</head>
-<body>
-<div id="world"></div>
-<div id="fx"></div>
-<script src="classic-runtime/config.js"></script>
-<script>window.CONFIG = Object.assign({ hideOfficialBadge: true, showOfficialBadge: false, end: 15.466 }, window.CONFIG || {});</script>
-<script src="classic-runtime/lib.js"></script>
-<script src="classic-runtime/motion.js"></script>
-<script src="classic-runtime/units/claim-into-container.js"></script>
-<script src="classic-runtime/main.js"></script>
-<script>
-/* Wrap the authored-unit renderAt(t) clock as window.film.frame(t). Audio stays on the film timeline, not in this page. */
-function whenReady() {
-  const render = window.renderAt;
-  const wait = window.imgWait;
-  const duration = 15.466;
-  window.film = {
-    duration,
-    frame(t) {
-      if (typeof render === 'function') render(t);
-      if (typeof wait === 'function') return wait();
-    }
-  };
-}
-if (window.READY && typeof window.READY.then === 'function') {
-  window.READY.then(whenReady);
-} else {
-  whenReady();
-}
-</script>
-</body>
-</html>
-`;
-  await writeFile(join(outDir, 'scenes', 'classic-unit.html'), html, 'utf8');
-  void duration;
 }
 
-function renderProjectNotes({ title, plan, filled }) {
+function unitTalkRel(talkRel) {
+  if (!talkRel) return '';
+  return talkRel.startsWith('../') ? talkRel : `../${talkRel}`;
+}
+
+function pickSeqMedia(clip, illustrations) {
+  if (clip.unitId !== 'evidence-focus') return {};
+  const srcs = (illustrations || []).map((s) => s.src).filter(Boolean);
+  const media = {};
+  const keys = ['soft_match', 'soft_tpl', 'prev'];
+  keys.forEach((key, i) => {
+    const src = srcs[i] || srcs[0];
+    if (src) media[key] = src.startsWith('../') ? src : `../${src}`;
+  });
+  return media;
+}
+
+async function writeEvidenceFallback(outDir, clip, seqMedia) {
+  if (clip.unitId !== 'evidence-focus') return seqMedia;
+  if (seqMedia.soft_match && seqMedia.soft_tpl && seqMedia.prev) return seqMedia;
+  const dir = join(outDir, 'assets', 'unit-media');
+  await mkdir(dir, { recursive: true });
+  const title = clip.slots?.['text-03'] || clip.slots?.['text-01'] || '本期对照';
+  const result = clip.slots?.['text-11'] || clip.slots?.['text-10'] || title;
+  const cards = [
+    ['soft_match', title],
+    ['soft_tpl', title],
+    ['prev', result],
+  ];
+  const next = { ...seqMedia };
+  for (const [key, label] of cards) {
+    if (next[key]) continue;
+    const file = `${clip.id}-${key}.svg`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600">
+<rect width="960" height="600" fill="#161616"/>
+<rect x="48" y="48" width="864" height="504" rx="28" fill="#1f1f1f" stroke="#333"/>
+<text x="80" y="280" fill="#f7f7f5" font-size="48" font-family="PingFang SC, sans-serif">${escapeHtml(label)}</text>
+</svg>
+`;
+    await writeFile(join(dir, file), svg, 'utf8');
+    next[key] = `../assets/unit-media/${file}`;
+  }
+  return next;
+}
+
+async function embedClassicUnits(outDir, { duration, plan, templateId, talkRel, illustrations }) {
+  const assigned = assignUnits(plan, { templateId });
+  if (!assigned.clips.length) return [];
+  await embedClassicRuntime(outDir);
+  const manifest = loadUnitsManifest();
+  const boundDir = join(outDir, 'scenes', 'classic-runtime', 'bound');
+  await mkdir(boundDir, { recursive: true });
+  const talk = unitTalkRel(talkRel);
+  const written = [];
+  for (const clip of assigned.clips) {
+    const scene = sceneById(manifest, clip.unitId);
+    const sourceName = basename(scene.sourceCodeFile || `${clip.unitId}.js`);
+    const sourcePath = join(CLASSIC_PACK_DIR, 'units', sourceName);
+    const source = await readFile(sourcePath, 'utf8');
+    const { block } = bindAuthoredBlock(source, scene, clip.slots, clip.id);
+    const boundName = `${clip.id}.js`;
+    await writeFile(join(boundDir, boundName), block, 'utf8');
+    let seqMedia = pickSeqMedia(clip, illustrations);
+    seqMedia = await writeEvidenceFallback(outDir, clip, seqMedia);
+    const html = renderUnitPage({
+      clip,
+      talkRel: talk,
+      seqMedia,
+      boundScript: block,
+    });
+    await writeFile(join(outDir, 'scenes', `${clip.id}.html`), html, 'utf8');
+    written.push({
+      ...clip,
+      page: `scenes/${clip.id}.html`,
+      seqMedia,
+    });
+  }
+  void duration;
+  return written;
+}
+
+function renderProjectNotes({ title, plan, filled, units = [] }) {
   return `# ${title}
 
 这是 Koubo Studio 生成的口播工程，可用本仓库的 Studio / 桌面端打开 \`film.html\`，用左侧对话继续改字幕、插图或裁切，再导出 MP4。
@@ -512,7 +575,11 @@ ${formatPlanSummary(plan)}
 
 ${filled.length ? filled.map((s) => `- \`${s.id}\` @ ${s.at.toFixed(2)}s（${s.placeholder ? '占位图' : '已生成'}）：${s.prompt}`).join('\n') : '（本片没有自动插入插图槽）'}
 
-手改会进 OpenFilm 格式的 \`overrides\`，智能体再改时不应覆盖。口播和 BGM 只走时间线音轨，不要在镜头页里播放声音。
+## 阿杜镜头单位
+
+${units.length ? units.map((u) => `- \`${u.id}\`（${u.unitId}）@ ${Number(u.at).toFixed(2)}s，${Number(u.duration).toFixed(2)}s`).join('\n') : '（本片时长不够，或未选择口播讲解模板，没有排入镜头单位）'}
+
+手改会进 OpenFilm 格式的 \`overrides\`，智能体再改时不应覆盖。口播和 BGM 只走时间线音轨，不要在镜头页里播放声音。官方面标默认关闭。当前版本尚未做面部追踪。
 `;
 }
 
@@ -522,7 +589,7 @@ function shouldIncludeClassic(templateId) {
   return templateId === 'classic-performance';
 }
 
-function workflowRecord(opts, plan) {
+function workflowRecord(opts, plan, units = []) {
   const templateId = opts.templateId || plan?.template?.id || 'classic-performance';
   const templateSource = opts.templateSource || plan?.template?.source || 'auto';
   return {
@@ -532,6 +599,7 @@ function workflowRecord(opts, plan) {
     templateSource,
     sourceVideoName: opts.sourceVideoName || null,
     needsReview: Boolean(plan?.needsReview),
+    unitCount: Array.isArray(units) ? units.length : 0,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -584,5 +652,5 @@ export async function reapplyTemplate(opts) {
   });
 }
 
-export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord, copyPackFiles, groupCaptionLines, captionLineAt, captionCharUnits };
+export const __test__ = { renderFilmHtml, renderCaptionsPage, escapeHtml, shouldIncludeClassic, workflowRecord, copyPackFiles, groupCaptionLines, captionLineAt, captionCharUnits, embedClassicUnits, pickSeqMedia };
 
