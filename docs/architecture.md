@@ -17,7 +17,7 @@
 ## 一条口播出片怎么走
 
 1. `koubo ingest` 在 `packages/koubo` 里转写、出方案、裁轨。
-2. `buildProject` 从 `@koubo/templates` 套字幕和插图，写成标准工程（`film.html` + `scenes/` + `overrides`）。
+2. `buildProject` 从 `@koubo/templates` 套字幕、插图，并按转写节拍把 classic-performance 单位（主张 / 拆解 / 证据）写进时间线，写成标准工程（`film.html` + `scenes/` + `overrides`）。
 3. `koubo open` / 桌面端打开同一套工程；右侧对话改的是这份时间线和 overrides。
 4. `koubo look` / `koubo render` 调用 `@koubo/editor/cli`（同一进程里的模块，不是外部引擎包装脚本）。
 

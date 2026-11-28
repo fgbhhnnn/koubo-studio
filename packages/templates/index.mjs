@@ -9,6 +9,23 @@ export const CLASSIC_PACK_DIR = join(TEMPLATES_ROOT, 'classic-performance');
 export const ILLUSTRATION_HTML = join(TEMPLATES_ROOT, 'illustration.html');
 
 export { assignTemplate };
+export {
+  assignUnits,
+  loadUnitsManifest,
+  fillUnitSlots,
+  mapUnitClock,
+  sourceTimeAt,
+  unitBounds,
+  classifyBeat,
+  splitSentences,
+  joinWords,
+  clipText,
+  sceneById,
+  UNITS_MANIFEST_PATH,
+} from './assign-units.mjs';
+export { bindAuthoredBlock, jsContent, sha256Utf8, PACK_PLAIN_TEXT_RUNTIME } from './bind-unit.mjs';
+export { renderUnitPage } from './unit-page.mjs';
+
 
 export function loadCatalog() {
   return JSON.parse(readFileSync(join(TEMPLATES_ROOT, 'catalog.json'), 'utf8'));

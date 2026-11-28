@@ -21,7 +21,7 @@ test('renderFilmHtml has viewport, talk clip, captions page and no in-page audio
     duration: 12.5,
     talkRel: 'assets/talking-clean.mp4',
     illustrations: [{ id: 'illus-1', at: 2, duration: 4, src: 'assets/illustrations/illus-1.svg', prompt: '方法' }],
-    hasClassic: true,
+    units: [{ id: 'unit-01', unitId: 'claim-into-container', at: 0, duration: 15.466 }],
   });
   assert.match(html, /<meta name="viewport" content="width=1920, height=1080">/);
   assert.match(html, /<video id="talk" src="assets\/talking-clean\.mp4#t=0,12\.5000"/);
@@ -29,9 +29,12 @@ test('renderFilmHtml has viewport, talk clip, captions page and no in-page audio
   assert.match(html, /size="1920x320"/);
   assert.match(html, /<iframe id="illus-1" src="scenes\/illus-1.html#t=0,4.0000"/);
   assert.match(html, /size="960x600"/);
-  assert.match(html, /classic-unit\.html/);
+  assert.match(html, /<iframe id="unit-01" src="scenes\/unit-01.html#t=0,15.4660"/);
+  assert.match(html, /size="1920x1080"/);
+  assert.doesNotMatch(html, /classic-unit\.html/);
   assert.doesNotMatch(html, /<audio/);
-  assert.match(html, /disabled/);
+  assert.doesNotMatch(html, /\bdisabled\b/);
+  assert.doesNotMatch(html, /<section hidden>/);
 });
 
 test('captions page exposes window.film.frame(t) and duration', () => {
@@ -89,14 +92,13 @@ test('buildProject writes film.html, captions, illustration slot and plan', asyn
     if (illusPage) assert.match(illusPage, /width: 960, height: 600/);
     const writtenPlan = JSON.parse(await readFile(join(out, 'koubo', 'plan.json'), 'utf8'));
     assert.ok(Array.isArray(writtenPlan.keeps));
-    const classic = await readFile(join(out, 'scenes', 'classic-unit.html'), 'utf8');
-    assert.match(classic, /window\.film/);
-    assert.match(classic, /renderAt/);
-    assert.match(classic, /hideOfficialBadge/);
-    const unitName = 'claim-into-container.js';
-    const copied = await readFile(join(out, 'scenes', 'classic-runtime', 'units', unitName), 'utf8');
-    const original = await readFile(join(CLASSIC_PACK_DIR, 'units', unitName), 'utf8');
-    assert.equal(copied, original);
+    const filmNoStub = film;
+    assert.doesNotMatch(filmNoStub, /classic-unit\.html/);
+    assert.doesNotMatch(filmNoStub, /\bdisabled\b/);
+    const units = JSON.parse(await readFile(join(out, 'koubo', 'units.json'), 'utf8'));
+    assert.equal(units.length, 0, 'a 2s stub is too short for a classic unit');
+    const workflow = JSON.parse(await readFile(join(out, 'koubo', 'workflow.json'), 'utf8'));
+    assert.equal(workflow.unitCount, 0);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -219,4 +221,80 @@ test('renderCaptionsPage only paints the current line and declares its own size'
   // DATA keeps every line for seeking, but each token is its own JSON string.
   assert.match(html, /"text":"付"/);
   assert.match(html, /"text":"干"/);
+});
+
+function wordsFrom(text, start, end) {
+  const chars = [...text];
+  const dt = (end - start) / chars.length;
+  return chars.map((ch, i) => ({
+    text: ch,
+    start: Number((start + i * dt).toFixed(4)),
+    end: Number((start + (i + 1) * dt).toFixed(4)),
+    type: 'word',
+  }));
+}
+
+test('buildProject writes enabled unit clips timed to a long talking-head plan', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'koubo-units-proj-'));
+  const video = join(dir, 'clean.mp4');
+  try {
+    await run('ffmpeg', [
+      '-y', '-f', 'lavfi', '-i', 'color=c=black:s=640x360:d=52:r=25',
+      '-f', 'lavfi', '-i', 'sine=frequency=330:duration=52',
+      '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-shortest', video,
+    ]);
+    const words = [
+      ...wordsFrom('说实话，这个速度我自己都没有想到。AI赛道真的是这个时代每个人都该抓住的机会。', 0.2, 16.2),
+      ...wordsFrom('首先把选题拆成三步，第一是找到痛点，第二是讲清方法，第三是给出对照。', 16.5, 33.8),
+      ...wordsFrom('比如你看这三条视频的实际效果，涨粉和变现都比之前更稳。', 34.1, 51.0),
+    ];
+    const plan = {
+      words,
+      sourceDuration: 51,
+      cleanDuration: 51,
+      sourceWordCount: words.length,
+      cleanWordCount: words.length,
+      keeps: [{ start: 0, end: 51 }],
+      deletes: [],
+      needsReview: false,
+      template: { id: 'classic-performance', source: 'user' },
+    };
+    const out = join(dir, 'project');
+    const result = await buildProject({
+      outDir: out,
+      title: '单位工程',
+      cleanVideo: video,
+      plan,
+      templateId: 'classic-performance',
+      templateSource: 'user',
+      imageGenerator: async () => null,
+    });
+    assert.ok(result.units.length >= 3, `expected >=3 units, got ${result.units.length}`);
+    const film = await readFile(result.film, 'utf8');
+    assert.match(film, /id="captions"/);
+    assert.match(film, /size="1920x320"/);
+    assert.match(film, /id="unit-01"/);
+    assert.doesNotMatch(film, /\bdisabled\b/);
+    assert.doesNotMatch(film, /<section hidden>/);
+    assert.doesNotMatch(film, /classic-unit\.html/);
+    const captions = await readFile(join(out, 'scenes', 'captions.html'), 'utf8');
+    assert.match(captions, /bar\.replaceChildren\(\)/);
+    assert.match(captions, /"width":1920,"height":320/);
+    const page = await readFile(join(out, 'scenes', 'unit-01.html'), 'utf8');
+    assert.match(page, /window\.film/);
+    assert.match(page, /hideOfficialBadge: true/);
+    assert.match(page, /showOfficialBadge: false/);
+    assert.doesNotMatch(page, /公开蒸馏/);
+    assert.match(page, /function mapSource/);
+    const unitIds = result.units.map((u) => u.unitId);
+    assert.ok(unitIds.includes('claim-into-container'));
+    assert.ok(unitIds.includes('decompose-and-consolidate'));
+    assert.ok(unitIds.includes('evidence-focus'));
+    const original = await readFile(join(CLASSIC_PACK_DIR, 'units', 'claim-into-container.js'), 'utf8');
+    const copied = await readFile(join(out, 'scenes', 'classic-runtime', 'units', 'claim-into-container.js'), 'utf8');
+    assert.equal(copied, original);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });

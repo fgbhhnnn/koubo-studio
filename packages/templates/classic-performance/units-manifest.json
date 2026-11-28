@@ -1,0 +1,963 @@
+{
+  "id": "classic-performance",
+  "version": "1.0.0",
+  "sourceFormat": "authored-unit/1",
+  "fps": 60,
+  "width": 1920,
+  "height": 1080,
+  "derivedFrom": "adu-motion-video packs/classic-performance/1.0.0 (MIT)",
+  "scenes": [
+    {
+      "id": "claim-into-container",
+      "title": "主张→方法容器→三对象分发→证据→回应",
+      "role": "主张→方法容器→三对象分发→证据→回应",
+      "sourceCodeFile": "units/claim-into-container.js",
+      "sourceBlockSha256": "6dda3cacea9d11239f594807c4c7abdb8c5a202f22a21918062f0bc26b2da577",
+      "sourceStart": 0,
+      "sourceEnd": 15.466,
+      "fps": 60,
+      "requiresFaceTracking": true,
+      "motionWindows": [
+        {
+          "id": "action-01",
+          "start": 0,
+          "end": 4.13
+        },
+        {
+          "id": "action-02",
+          "start": 4.52,
+          "end": 7.23
+        },
+        {
+          "id": "action-03",
+          "start": 8.3,
+          "end": 14.85
+        }
+      ],
+      "minFrames": 836,
+      "maxHoldFrames": 360,
+      "plainTextExpressions": [],
+      "slots": [
+        {
+          "sourceText": "// 01 — 把方法公开",
+          "id": "text-00",
+          "renderContext": "html",
+          "mustChange": true,
+          "maxChars": 32,
+          "sourceSpans": [
+            {
+              "start": 1038,
+              "end": 1051,
+              "renderContext": "html"
+            }
+          ],
+          "inputTemplate": "// {chapter} — {label}",
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "公开蒸馏",
+          "id": "text-01",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "claim.line1",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 1123,
+              "end": 1127,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "剪辑能力",
+          "id": "text-02",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "claim.line2",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 1159,
+              "end": 1163,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "从一支成片，提炼成可复用的方法",
+          "id": "text-03",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "claim.context",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 1349,
+              "end": 1364,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "把方法，装进 Skill",
+          "id": "text-04",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "container.heading",
+          "maxChars": 18,
+          "sourceSpans": [
+            {
+              "start": 1412,
+              "end": 1424,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "可编辑工程 · 制作方法",
+          "id": "text-05",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "container.type",
+          "maxChars": 20,
+          "sourceSpans": [
+            {
+              "start": 1545,
+              "end": 1557,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "adu-motion-video",
+          "id": "text-06",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "container.name",
+          "maxChars": 20,
+          "sourceSpans": [
+            {
+              "start": 1652,
+              "end": 1668,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "场景　·　声音　·　导出",
+          "id": "text-07",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "container.contents",
+          "maxChars": 20,
+          "sourceSpans": [
+            {
+              "start": 1760,
+              "end": 1772,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "✓ 本片正在使用",
+          "id": "text-08",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "container.status",
+          "maxChars": 12,
+          "sourceSpans": [
+            {
+              "start": 1941,
+              "end": 1949,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "Codex",
+          "id": "text-09",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "receivers.0",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2305,
+              "end": 2310,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "豆包",
+          "id": "text-10",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "receivers.1",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2313,
+              "end": 2315,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "更多助手",
+          "id": "text-11",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "receivers.2",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2318,
+              "end": 2322,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "这条视频，就在用它",
+          "id": "text-12",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "proof.heading",
+          "maxChars": 13,
+          "sourceSpans": [
+            {
+              "start": 2720,
+              "end": 2729,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "文案 → 画面 → 可编辑成片",
+          "id": "text-13",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "proof.chain",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 2777,
+              "end": 2792,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "个人吐槽 · 不是平台通知",
+          "id": "text-14",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "response.context",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 2838,
+              "end": 2851,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "发出这条视频之后……",
+          "id": "text-15",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "response.setup",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 2979,
+              "end": 2989,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "永久黑名单？",
+          "id": "text-16",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "response.impact",
+          "maxChars": 9,
+          "sourceSpans": [
+            {
+              "start": 3158,
+              "end": 3164,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "方法，照样公开。",
+          "id": "text-17",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "response.resolve",
+          "maxChars": 18,
+          "sourceSpans": [
+            {
+              "start": 3216,
+              "end": 3224,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "presenter",
+          "type": "talk"
+        }
+      ]
+    },
+    {
+      "id": "evidence-focus",
+      "title": "真实证据播放→三项聚焦→结论",
+      "role": "真实证据播放→三项聚焦→结论",
+      "sourceCodeFile": "units/evidence-focus.js",
+      "sourceBlockSha256": "2e0ac04a41d46a55354af09c183d515ceaa7e59657b773bdeaedb72efb6f2678",
+      "sourceStart": 68.6,
+      "sourceEnd": 84.3,
+      "fps": 60,
+      "requiresFaceTracking": true,
+      "motionWindows": [
+        {
+          "id": "action-01",
+          "start": 68.6,
+          "end": 68.94
+        },
+        {
+          "id": "action-02",
+          "start": 69.2,
+          "end": 82.97
+        }
+      ],
+      "minFrames": 880,
+      "maxHoldFrames": 360,
+      "plainTextExpressions": [
+        "t>=hit?names[i]:former[i]"
+      ],
+      "slots": [
+        {
+          "sourceText": "// 05 — 回到创作本身",
+          "id": "text-00",
+          "renderContext": "html",
+          "mustChange": true,
+          "maxChars": 32,
+          "sourceSpans": [
+            {
+              "start": 1080,
+              "end": 1094,
+              "renderContext": "html"
+            }
+          ],
+          "inputTemplate": "// {chapter} — {label}",
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "回到创作本身",
+          "id": "text-01",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "entry",
+          "maxChars": 14,
+          "sourceSpans": [
+            {
+              "start": 1180,
+              "end": 1186,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "创作能力，确实出色",
+          "id": "text-02",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "claim",
+          "maxChars": 15,
+          "sourceSpans": [
+            {
+              "start": 1225,
+              "end": 1234,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "阿杜导演 · AI 自动剪辑",
+          "id": "text-03",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "evidence.title",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 1293,
+              "end": 1307,
+              "renderContext": "html"
+            },
+            {
+              "start": 3652,
+              "end": 3666,
+              "renderContext": "text"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "画面排版",
+          "id": "text-04",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "observations.0.after",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2211,
+              "end": 2215,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "动效动画",
+          "id": "text-05",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "observations.1.after",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2218,
+              "end": 2222,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "音效细节",
+          "id": "text-06",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "observations.2.after",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2225,
+              "end": 2229,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "研发自动剪辑",
+          "id": "text-07",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "observations.0.before",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2594,
+              "end": 2600,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "真实软件画面",
+          "id": "text-08",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "observations.1.before",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2603,
+              "end": 2609,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "从专业角度看",
+          "id": "text-09",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "observations.2.before",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 2612,
+              "end": 2618,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "细节，决定完成度。",
+          "id": "text-10",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "conclusion",
+          "maxChars": 14,
+          "sourceSpans": [
+            {
+              "start": 3071,
+              "end": 3080,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "上一集画面 · 创作效果回看",
+          "id": "text-11",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "evidence.resultTitle",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 3669,
+              "end": 3683,
+              "renderContext": "text"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceAsset": "soft_match",
+          "id": "overview",
+          "inputPath": "evidence.overview",
+          "type": "video"
+        },
+        {
+          "sourceAsset": "soft_tpl",
+          "id": "detail",
+          "inputPath": "evidence.detail",
+          "type": "video"
+        },
+        {
+          "sourceAsset": "prev",
+          "id": "result",
+          "inputPath": "evidence.result",
+          "type": "video"
+        },
+        {
+          "id": "presenter",
+          "type": "talk"
+        }
+      ]
+    },
+    {
+      "id": "decompose-and-consolidate",
+      "title": "关键词冲击→三项演示→分解归档→方法容器",
+      "role": "关键词冲击→三项演示→分解归档→方法容器",
+      "sourceCodeFile": "units/decompose-and-consolidate.js",
+      "sourceBlockSha256": "3e002508e96c802c7c7a25f96fb088f1f4db3e84767ac62846118ef58928874f",
+      "sourceStart": 84.3,
+      "sourceEnd": 101.666,
+      "fps": 60,
+      "requiresFaceTracking": true,
+      "motionWindows": [
+        {
+          "id": "action-01",
+          "start": 84.3,
+          "end": 84.84
+        },
+        {
+          "id": "action-02",
+          "start": 86.533,
+          "end": 88.34
+        },
+        {
+          "id": "action-03",
+          "start": 89.8,
+          "end": 101.6
+        }
+      ],
+      "minFrames": 882,
+      "maxHoldFrames": 360,
+      "plainTextExpressions": [],
+      "slots": [
+        {
+          "sourceText": "// 06 — 方法类比",
+          "id": "text-00",
+          "renderContext": "html",
+          "mustChange": true,
+          "maxChars": 32,
+          "sourceSpans": [
+            {
+              "start": 953,
+              "end": 965,
+              "renderContext": "html"
+            }
+          ],
+          "inputTemplate": "// {chapter} — {label}",
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "个人观察 · 方法类比",
+          "id": "text-01",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "context",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 1051,
+              "end": 1062,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "它的实现逻辑？",
+          "id": "text-02",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "question",
+          "maxChars": 13,
+          "sourceSpans": [
+            {
+              "start": 1113,
+              "end": 1120,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "蒸馏",
+          "id": "text-03",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "concept",
+          "maxChars": 3,
+          "sourceSpans": [
+            {
+              "start": 1168,
+              "end": 1170,
+              "renderContext": "html"
+            },
+            {
+              "start": 1285,
+              "end": 1287,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "把熟悉的方法，变成可重复的步骤",
+          "id": "text-04",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "explanation",
+          "maxChars": 24,
+          "sourceSpans": [
+            {
+              "start": 1217,
+              "end": 1232,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "熟悉的模板语言",
+          "id": "text-05",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "decomposeHeading",
+          "maxChars": 14,
+          "sourceSpans": [
+            {
+              "start": 1441,
+              "end": 1448,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "把视觉配方，沉淀下来",
+          "id": "text-06",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "consolidateHeading",
+          "maxChars": 16,
+          "sourceSpans": [
+            {
+              "start": 1499,
+              "end": 1509,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "画面排版",
+          "id": "text-07",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "parts.0.label",
+          "maxChars": 7,
+          "sourceSpans": [
+            {
+              "start": 1662,
+              "end": 1666,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "标题",
+          "id": "text-08",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "parts.0.sample",
+          "maxChars": 5,
+          "sourceSpans": [
+            {
+              "start": 1791,
+              "end": 1793,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "动效节奏",
+          "id": "text-09",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "parts.1.label",
+          "maxChars": 7,
+          "sourceSpans": [
+            {
+              "start": 2003,
+              "end": 2007,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "镜头转场",
+          "id": "text-10",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "parts.2.label",
+          "maxChars": 7,
+          "sourceSpans": [
+            {
+              "start": 2292,
+              "end": 2296,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "SKILL.md",
+          "id": "text-11",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "result.file",
+          "maxChars": 16,
+          "sourceSpans": [
+            {
+              "start": 2936,
+              "end": 2944,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "可复用",
+          "id": "text-12",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "result.label",
+          "maxChars": 6,
+          "sourceSpans": [
+            {
+              "start": 3032,
+              "end": 3035,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "规则 · 配方 · 工具",
+          "id": "text-13",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "result.contents",
+          "maxChars": 20,
+          "sourceSpans": [
+            {
+              "start": 3127,
+              "end": 3139,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "排版配方",
+          "id": "text-14",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "parts.0.record",
+          "maxChars": 8,
+          "sourceSpans": [
+            {
+              "start": 3297,
+              "end": 3301,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "动作配方",
+          "id": "text-15",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "parts.1.record",
+          "maxChars": 8,
+          "sourceSpans": [
+            {
+              "start": 3304,
+              "end": 3308,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "转场配方",
+          "id": "text-16",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "parts.2.record",
+          "maxChars": 8,
+          "sourceSpans": [
+            {
+              "start": 3311,
+              "end": 3315,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "sourceText": "动作留下来，下一次接着用",
+          "id": "text-17",
+          "renderContext": "html",
+          "mustChange": true,
+          "inputPath": "result.conclusion",
+          "maxChars": 22,
+          "sourceSpans": [
+            {
+              "start": 3540,
+              "end": 3552,
+              "renderContext": "html"
+            }
+          ],
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "presenter",
+          "type": "talk"
+        }
+      ]
+    }
+  ]
+}
