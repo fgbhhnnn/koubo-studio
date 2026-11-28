@@ -94,7 +94,20 @@ mkdirSync(stage, { recursive: true });
 cpSync(join(desktop, 'src'), join(stage, 'src'), { recursive: true, filter: (from) => !from.endsWith('.test.mjs') });
 cpSync(join(desktop, 'shell/dist'), join(stage, 'shell/dist'), { recursive: true });
 const pack = (dir) => execFileSync('npm', ['pack', '--ignore-scripts', '--pack-destination', work, '--silent'], { cwd: dir, encoding: 'utf8' }).trim().split('\n').pop();
-const dependencies = { ...pkg.dependencies, openfilm: `file:../${pack(protocol)}` };
+/* npm in the stage folder cannot read pnpm `workspace:*`. Pack each workspace package
+   the app needs and pin it (and the same names inside those packages) to the tarball. */
+const repo = resolve(desktop, '../..');
+const packed = {
+  '@koubo/templates': `file:../${pack(join(repo, 'packages/templates'))}`,
+  '@koubo/editor': `file:../${pack(protocol)}`,
+  koubo: `file:../${pack(join(repo, 'packages/koubo'))}`,
+};
+const dependencies = { ...pkg.dependencies, ...packed };
+for (const [name, spec] of Object.entries(dependencies)) {
+  if (typeof spec === 'string' && spec.startsWith('workspace:')) {
+    throw new Error(`Cannot stage ${name}: ${spec} (npm does not understand workspace:). Pack it first.`);
+  }
+}
 /* npm takes the versions pnpm's lockfile has (locked-versions.mjs): what the tests ran with, not the latest */
 const lockedTree = JSON.parse(execFileSync('pnpm', ['list', '--prod', '--depth', 'Infinity', '--json'], { cwd: desktop, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }))[0];
 writeFileSync(join(stage, 'package.json'), `${JSON.stringify({
@@ -109,7 +122,7 @@ writeFileSync(join(stage, 'package.json'), `${JSON.stringify({
   type: 'module',
   main: 'src/main.mjs',
   dependencies,
-  overrides: lockedOverrides(lockedTree, pkg.dependencies),
+  overrides: { ...lockedOverrides(lockedTree, pkg.dependencies), ...packed },
 }, null, 2)}\n`);
 run('npm', ['install', '--omit=dev', '--omit=optional', '--no-audit', '--no-fund', '--no-package-lock', '--loglevel=error'], { cwd: stage });
 const offLock = versionsOffLock(lockedTree, join(stage, 'node_modules'));
@@ -117,7 +130,7 @@ if (offLock.length) {
   throw new Error(`The installer's packages are not the lockfile's:\n${offLock.map((p) => `  ${p.name} ${p.version} (locked: ${p.locked.join(', ')})`).join('\n')}`);
 }
 /* the build's product file */
-cpSync(productFile, join(stage, 'node_modules/openfilm/product.json'));
+cpSync(productFile, join(stage, 'node_modules/@koubo/editor/product.json'));
 
 /* 2b. ffmpeg and the headless browser, for the platform and chip built for */
 const runtime = join(work, 'runtime');
@@ -154,7 +167,7 @@ await builder.build({
     nsis: {
       include: join(desktop, 'build/installer.nsh'),
       /* electron-builder leaves these out of its archive and adds them back apart, skipping node_modules: the
-         library's previews (node_modules/openfilm/library/.../preview.mp4) would never reach the computer */
+         library's previews (node_modules/@koubo/editor/library/.../preview.mp4) would never reach the computer */
       preCompressedFileExtensions: null,
       /* the installer asks where to put the app (the person's own folder by default), so it need not live on C: */
       oneClick: false,
@@ -174,7 +187,7 @@ await builder.build({
     electronVersion,
     asar: true,
     /* run by Electron as Node from outside the archive: the CLI the agents run, the agents' adapters */
-    asarUnpack: ['node_modules/openfilm/**', 'node_modules/@agentclientprotocol/**', 'node_modules/playwright-core/**'],
+    asarUnpack: ['node_modules/@koubo/editor/**', 'node_modules/@koubo/templates/**', 'node_modules/koubo/**', 'node_modules/@agentclientprotocol/**', 'node_modules/playwright-core/**'],
     files: ['src/**/*', 'shell/dist/**/*', 'package.json', 'node_modules/**/*'],
     /* ffmpeg and the headless browser (2b), as files of their own beside the archive: they run as programs */
     extraResources: [{ from: runtime, to: 'runtime' }],
